@@ -38,7 +38,7 @@ intraspecific_data <- subset(raw_data, (Project == "T") & (Experiment == "C") &
 
 #counting the number of leaves/individual/species/site
 counts <- intraspecific_data %>% 
-  group_by(Site, Plot_ID, genus_species, Individual_nr) %>%
+  group_by(Site, Plot_ID, genus_species, Individual_nr, Leaf_nr) %>%
   summarise(n())
 
 
