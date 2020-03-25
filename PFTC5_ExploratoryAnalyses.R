@@ -51,3 +51,9 @@ x<-intraspecific_data %>%
 x
 hist(intraspecific_data$Plant_Height_cm)
 hist(intraspecific_data$Wet_Mass_g)
+
+
+
+
+
+
