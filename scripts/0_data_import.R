@@ -50,13 +50,17 @@ traits_raw <- read.csv(file.path("data", "raw", "PFTC3-Puna-PFTC5_Peru_2018-2020
 ### 2) Data filtering ----
 
 # Relevant species only
+unique(traits_raw$taxon)
+rel_sp <- c("Gaultheria glomerata","Paspalum bonplandianum",
+            "Vaccinium floribundum","Rhynchospora macrochaeta",
+            # These were new substitutes
+            # Check other docs for consistancy
+            "Halenia umbellata", "Lachemilla orbiculata") 
 
-rel_sp <- c("Gaultheria glomerata", "Paspalum bonplandianum",
-            "Vaccinium floribundium", "Hypericum andium", 
-            "Rhynchospora macrochaeta", "Oritropium hieraciodies")
-
-traits_ITV <- traits_raw %>%
+traits <- traits_raw %>%
   filter(taxon == rel_sp) 
+
+unique(traits$taxon)
 
 #remove raw files
 rm('traits_raw')
