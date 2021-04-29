@@ -3,9 +3,12 @@
 ## Downloading and 'cleaning' the data
 This can be done by running the scripts/0_data_import.R file. This will then download the data as well as filter/clean the data so that we only have the data that we will be using for our analyses (i.e. 2020, sites (WAY, ACJ, TRE), control only sites, and our 6 species).
 
-You can 'run'/call this script by calling source(here::here(path = "scripts/0_data_import.R")) at the beginning of your script. which will also add the two cleaned/filtered datasets to your environment as traits (for functional traits) as well as ensuring that you have the most up to date dataset stored on you machine.
+You can 'run'/call this script by calling
+`source(here::here(path = "scripts/0_data_import.R"))` at the
+beginning of your script. which will also add the two cleaned/filtered
+datasets to your environment as `traits` (for functional traits) as well as ensuring that you have the most up to date dataset stored on you machine.
 
-Note if you do call source(here::here(path = "scripts/0_data_import.R")) at the beginning of your script it does mean you will always be using the most complete/updated dataset if we do end up changing which data we want to keep or exclude from analyses.
+Note if you do call `source(here::here(path = "scripts/0_data_import.R"))` at the beginning of your script it does mean you will always be using the most complete/updated dataset if we do end up changing which data we want to keep or exclude from analyses.
 
 
 ## Script naming structure
