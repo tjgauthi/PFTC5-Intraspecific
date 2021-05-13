@@ -3,6 +3,7 @@
 #
 # Group 1: Intraspecific Variation
 
+#Install dev tools before running this and other codes!! 
 
 ### 0) Preamble ----
 ### >> a) Dependencies ----
@@ -58,11 +59,26 @@ rel_sp <- c("Gaultheria glomerata","Paspalum bonplandianum",
             "Halenia umbellata", "Lachemilla orbiculata") 
 
 traits <- traits_raw %>%
-  filter(taxon == rel_sp) 
+  filter(taxon %in% rel_sp) 
 
 unique(traits$taxon)
 
 #remove raw files
 rm('traits_raw')
+
+### 3) Data Structuring ----
+
+#removing obsolete columns after filtering
+traits<-traits %>% 
+  select (-c(year,season,month,treatment,burn_year,latitude,longitude,course))
+
+#Transform from long to wide format
+traits_wide<-traits %>%
+  pivot_wider(names_from = trait, values_from = value)
+
+#adding unique plot, individual, and leaf
+traits_wide$plot_uid <- paste(traits_wide$site,traits_wide$plot_id, sep = "_")
+traits_wide$individual_uid <- paste(traits_wide$site,traits_wide$plot_id, traits_wide$individual_nr, sep = "_")
+traits_wide$leaf_uid <- paste(traits_wide$site,traits_wide$plot_id, traits_wide$individual_nr, traits_wide$id, sep = "_")
 
 # End of script ----
