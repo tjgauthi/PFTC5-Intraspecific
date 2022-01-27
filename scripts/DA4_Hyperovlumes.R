@@ -18,7 +18,7 @@ install.load.package <- function(x) {
   require(x, character.only = TRUE)
 }
 package_vec <- c(
-  # names of the packages required placed here as character objects
+  "hypervolume"# names of the packages required placed here as character objects
 )
 sapply(package_vec, install.load.package)
 
@@ -27,5 +27,8 @@ sapply(package_vec, install.load.package)
 
 # DATA LOADING ============================================================
 source("scripts/0_data_import.R") # sourcing data import script
+traits_df <- na.omit(traits_wide[ , c(-2:-4, -16:-18)])
 
 # ANALYSES ================================================================
+Volume_hv <- hypervolume(data = traits_df[traits_df$functional_group == "Forb", -1:-5])
+get_volume(Volume_hv)
