@@ -11,15 +11,24 @@
 #   install.packages("skimr")
 #   library(skimr)
 # }
-library(tidyverse)
-library(tidylog)
-if(!require(stringr)){        # for string operations
-  install.packages("stringr")
-  library(stringr)
+
+install.load.package <- function(x) {
+  if (!require(x, character.only = TRUE))
+    install.packages(x, repos='http://cran.us.r-project.org')
+  require(x, character.only = TRUE)
 }
-library(here) #uses working directory as starting point for paths
-library(gsheet)
-#devtools::install_github("Between-the-Fjords/dataDownloader")
+package_vec <- c(
+  "tidyverse",
+  "tidylog",
+  "stringr",
+  "here",
+  "gsheet"
+)
+sapply(package_vec, install.load.package)
+
+if("dataDownloader" %in% rownames(installed.packages()) == FALSE){ # KrigR check
+  devtools::install_github("Between-the-Fjords/dataDownloader")
+}
 library(dataDownloader)
 
 
