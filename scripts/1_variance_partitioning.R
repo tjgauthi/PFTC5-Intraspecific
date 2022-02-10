@@ -9,20 +9,16 @@ library(tidyverse)
 library(lme4)
 
 #check out how many leaves each individual has
-leaf_count <- traits %>% 
-  group_by(site, plot_id, individual_nr, trait, taxon) %>% 
+leaf_count <- traits_wide %>% 
+  group_by(site, plot_uid, individual_uid, taxon) %>% 
   summarize(n = n())
 
 table(leaf_count$n)
 
-#most individuals have only 1 measurement. This seems like it would make it difficult to assess intraindividual trait variation. Is that a goal of ours?
-
-#test running a model
-test_dat <- traits %>% filter(trait == "leaf_thickness_mm")
-
+#need to decide on how to deal with individuals with 1-2 leaves
 
 #This code all comes from Julie Messier's web site
-mod<-lmer(log(value)~1+(1|taxon/individual_nr)+(1|site/plot_id), data=test_dat, na.action=na.omit)
+mod<-lmer(log(leaf_thickness_mm)~1+(1|taxon/individual_uid)+(1|site), data=traits_wide, na.action=na.omit)
 variances<-c(unlist(lapply(VarCorr(mod),diag)), attr(VarCorr(mod),"sc")^2) #get variances
 
 #this is the same as: print(VarCorr(mod),comp="Variance")
