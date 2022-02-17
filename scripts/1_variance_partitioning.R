@@ -45,9 +45,9 @@ variances
 (var.comp<-variances/sum(variances))
 
 var.comp<-as.data.frame(var.comp) #creates a dataframe from the values
-var.comp<-cbind(rownames(var.comp),data.frame(var.comp,row.names=NULL))
-var.comp<-melt(var.comp,value.name="value")
-names(var.comp)[1]<-"Scale"
+var.comp<-cbind(rownames(var.comp),data.frame(var.comp,row.names=NULL)) #changes row names into a column
+var.comp<-melt(var.comp,value.name="value") #makes var.comp into a variable
+names(var.comp)[1]<-"Scale" #changes the first column name to "scale"
 
 var.comp$value<-var.comp$value *100 #changes values into % 
 
