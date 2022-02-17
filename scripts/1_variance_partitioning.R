@@ -51,9 +51,15 @@ names(var.comp)[1]<-"Scale"
 
 var.comp$value<-var.comp$value *100 #changes values into % 
 
+var.comp<- var.comp %>%
+  group_by(variable)%>%
+  arrange(variable,desc(Scale))%>%
+  mutate(labypos=cumsum(value)-0.5*value)%>%
+  subset(value>1) #this line removes variance partitioning less than 1% so that there are no zero labels
+
 VP_Plot<-ggplot(var.comp, aes(x=variable, y=value))+
   geom_col(aes(fill=Scale))+
-  #geom_text(aes(y=labypos, label=round(value,digits = 0)),colour="white", size = 10)+
+  geom_text(aes(y=labypos, label=round(value,digits = 0)),colour="white", size = 10)+
   #scale_fill_manual (values = scales_colours)+
   ylab("Proportion of Variance (%)")+
   xlab("")+
