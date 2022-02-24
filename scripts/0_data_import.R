@@ -61,6 +61,10 @@ rel_sp <- c("Gaultheria glomerata","Paspalum bonplandianum",
 traits <- traits_raw %>%
   filter(taxon %in% rel_sp) 
 
+traits_all <- traits_raw %>% 
+  select (-c(year,season,month,treatment,burn_year,latitude,longitude,course))
+
+
 unique(traits$taxon)
 
 #remove raw files
@@ -80,5 +84,15 @@ traits_wide<-traits %>%
 traits_wide$plot_uid <- paste(traits_wide$site,traits_wide$plot_id, sep = "_")
 traits_wide$individual_uid <- paste(traits_wide$site,traits_wide$plot_id, traits_wide$individual_nr, sep = "_")
 traits_wide$leaf_uid <- paste(traits_wide$site,traits_wide$plot_id, traits_wide$individual_nr, traits_wide$id, sep = "_")
+
+traits$plot_uid <- paste(traits$site,traits$plot_id, sep = "_")
+traits$individual_uid <- paste(traits$site,traits$plot_id, traits$individual_nr, sep = "_")
+traits$leaf_uid <- paste(traits$site,traits$plot_id, traits$individual_nr, traits$id, sep = "_")
+
+traits_all$plot_uid <- paste(traits_all$site,traits_all$plot_id, sep = "_")
+traits_all$individual_uid <- paste(traits_all$site,traits_all$plot_id, traits_all$individual_nr, sep = "_")
+traits_all$leaf_uid <- paste(traits_all$site,traits_all$plot_id, traits_all$individual_nr, traits_all$id, sep = "_")
+
+
 
 # End of script ----
