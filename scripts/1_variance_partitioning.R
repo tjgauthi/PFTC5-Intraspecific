@@ -89,7 +89,7 @@ VP_Plot<-ggplot(output, aes(x=trait, y=value))+
   scale_y_continuous(expand=c(0,0),limits=c(0,100.1))+#this forces the graph to actually start at 0% and end at 100%
   #theme(legend.position = "none")+
   scale_x_discrete(labels=function(x){sub("\\s", "\n", x)}) +
-  scale_fill_manual(values = c("#EAC435", "#345995", "#03CEA4", "#FB4D3D", "#CA1551")) +
+  scale_fill_manual(values = pal_vp) +
   theme(axis.text.x = element_text(angle = 330, hjust = 0))
 VP_Plot
 
