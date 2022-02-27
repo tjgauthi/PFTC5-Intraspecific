@@ -15,7 +15,9 @@ traits_chem_final$ind_uid_new = paste(traits_chem_final$site,
                                       traits_chem_final$taxon,
                                       traits_chem_final$individual_nr) %>% as.factor()
 
-
+# Reorder taxon levels for correct colour assignment in plots
+traits_chem_final$taxon <- fct_reorder(traits_chem_final$taxon, 
+                                       as.numeric(as.factor(traits_chem_final$functional_group)))
 
 #
 #
@@ -30,10 +32,11 @@ p1 = ggplot(traits_chem_final, aes(x=ldmc, y=leaf_thickness_mm, color=taxon)) +
   #geom_smooth(method="lm") + 
   #geom_smooth(method="lm", aes(color=NULL)) +
   my_theme +
+  scale_color_manual(values = pal_lm) +
   ylim(0,0.625) +
   geom_point(size=0.9) +
-  geom_smooth(method="lm", se=F,lwd=0.4, color="darkgrey", aes(group=ind_uid_new)) +
-  geom_smooth(method="lm", se=F, lwd=0.6, aes(color=taxon)) +
+  geom_smooth(method="lm", se=F,lwd=0.4, color="grey80", aes(group=ind_uid_new)) +
+  geom_smooth(method="lm", se=F, lwd=0.8, aes(color=taxon)) +
   geom_smooth(method="lm", se=F, color="black", lty=2) #+
   #theme(legend.position = "none")
 
@@ -56,6 +59,7 @@ inset_plot = ggplotGrob(
     xlim(c(-3,3)) +
     xlab("Slope") +
     #ylim(c(0,22)) +
+    scale_color_manual(values = pal_lm) +
     theme(legend.position = "none") +
     theme(axis.title = element_text( size=8),
           rect = element_rect(fill = "transparent"),

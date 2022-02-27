@@ -81,4 +81,14 @@ traits_wide$plot_uid <- paste(traits_wide$site,traits_wide$plot_id, sep = "_")
 traits_wide$individual_uid <- paste(traits_wide$site,traits_wide$plot_id, traits_wide$individual_nr, sep = "_")
 traits_wide$leaf_uid <- paste(traits_wide$site,traits_wide$plot_id, traits_wide$individual_nr, traits_wide$id, sep = "_")
 
+### 4) Colour scheme ----
+
+# 3x2 scale (PFGs x species -- for linear models)
+pal_lm <- c("#016392", "#A0CBE8", "#E19825", "#F7C480", "#3E8853", "#9FCD99")
+# scales::show_col(pal_lm)
+
+# 5-level scale (levels of trait variation -- for variance partitioning)
+pal_vp <- c()
+# scales::show_col(pal_vp)
+
 # End of script ----
