@@ -4,6 +4,7 @@ library(devtools)
 #install_github("vqv/ggbiplot")
 library(ggbiplot)
 library(readr)
+library(factoextra)
 
 #* TO DO: 
 #* PCA - use traits as  explanatory variables
@@ -16,16 +17,17 @@ data <- read_csv("data/raw/PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv"
 # select 2020 and sites (WAY, ACJ and TRE) 
 data <- data %>%
   filter(site %in% c("WAY", "ACJ", "TRE") &
-           year == 2020 & treatment == "C" &
-           trait %in% c("plant_height_cm", "leaf_area_cm2", "sla_cm2_g", "ldmc" ))
+           year == 2020 & 
+           treatment == "C" &
+           trait %in% c("plant_height_cm", "leaf_area_cm2", "sla_cm2_g", "ldmc", "dry_mass_g", "leaf_thickness_mm"))
 
 
 data$site <- factor(data$site)
-data$site <- as.numeric(data$site)
+# data$site <- as.numeric(data$site)
 data$taxon <- factor(data$taxon)
-data$taxon <- as.numeric(data$taxon)
+# data$taxon <- as.numeric(data$taxon)
 data$functional_group <- factor(data$functional_group)
-data$functional_group <- as.numeric(data$functional_group)
+# data$functional_group <- as.numeric(data$functional_group)
 # data <- data[!is.na(data$individual_nr),]
 
 unique(data$site)
@@ -38,29 +40,41 @@ unique(data$trait)
 # PCA - plot 1 
 df1 <- data %>% 
   dplyr::select(id:value) %>% 
-  pivot_wider(names_from = trait, values_from = value)
-  
-df1 <- df1 %>%   
-  dplyr::select(c(taxon, functional_group, plant_height_cm, leaf_area_cm2, sla_cm2_g, ldmc))
+  filter(!id %in% c("CXX4125", "BDN3235")) %>% 
+  tidyr::pivot_wider(names_from = trait, values_from = value) %>% 
+  tibble::column_to_rownames("id") 
 
 
 # df1.trait <- factor(data$trait)
-pca_out <- prcomp(df1, center = TRUE, scale. = TRUE)
+pca_out <- prcomp(na.omit(df1[, -(1:3)]), center = TRUE, scale = TRUE)
+
+# pca_out <- prcomp(df1, center = TRUE, scale. = TRUE)
 summary(pca_out)
 str(pca_out)
 pca_out$rotation #look at laodings 
 
 ggbiplot(pca_out, choices = c(1, 2)) + theme_classic()
-ggbiplot(pca_out, choices = c(3, 4)) + theme_classic()
+# ggbiplot(pca_out, choices = c(3, 4)) + theme_classic()
 
 
 ggbiplot(
   pca_out,
   scale = 0,
   choices = c(1, 2),
-  # ellipse = TRUE,
-  groups = df1.trait
+  ellipse = TRUE,
+  # groups = df1.trait
 ) + theme_classic()
+
+
+fviz_pca_ind(pca_out, repel = TRUE,
+             col.var = "#2A2A2A", # Variables color
+             label = "none",
+             labelsize = 5, 
+             habillage = df1$functional_group,
+             addEllipses = TRUE,
+             ellipse.level = 0.95) +
+  theme_minimal(base_size = 15)
+
 
 
 # PCA - plot 2
