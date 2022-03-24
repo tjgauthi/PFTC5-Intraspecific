@@ -18,7 +18,9 @@ install.load.package <- function(x) {
   require(x, character.only = TRUE)
 }
 package_vec <- c(
-  "hypervolume"
+  "hypervolume",
+  "car",
+  "multcomp"
 )
 sapply(package_vec, install.load.package)
 
@@ -28,7 +30,12 @@ sapply(package_vec, install.load.package)
 # DATA LOADING ============================================================
 source("scripts/0_data_import.R") # sourcing data import script
 traits_wide$ID <- paste(traits_wide$individual_uid, traits_wide$taxon, sep="_")
+
+# POOL ELEVATION WITHIN SITE. WAY: 3101; ACJ: 3468; TRE: 3715
 traits_df <- na.omit(traits_wide[ , c(-2:-4, -16:-18)])
+traits_df$elevation <- ifelse(traits_df$site == 'ACJ', 3468,
+					   ifelse(traits_df$site == 'WAY', 3101,
+					   ifelse(traits_df$site == 'TRE', 3715, NA)))
 
 Grouping_df <- as.data.frame(table(traits_df[,c("taxon", "functional_group")]))
 Grouping_df <- Grouping_df[Grouping_df$Freq != 0, -3]
@@ -82,22 +89,97 @@ if(!file.exists(file.path("./data", "Hypervolumes.RData"))){
 
 ## Comparison of Volumes --------------------------------------------------
 
-### boxplots
+# Data prep
 Vols_df <- data.frame(values = unlist(ID_vols),
                       ID = names(unlist(ID_vols))
 )
 Vols_df$ID <- gsub(Vols_df$ID, pattern = ".untitled", replacement = "")
-plot_df <- plyr::join(x = Vols_df, y = traits_df, by = "ID")
+plot_df <- plyr::join(x = Vols_df, y = traits_df, by = "ID") %>%
+			distinct(values, ID, .keep_all = TRUE) %>%
+			filter(values != max(.$values)) # This filters out the outlier which is TRE_1_NA_Rhynchospora macrochaeta
 
-gplot <- ggplot(plot_df, aes(y = values, x = taxon)) + 
-  geom_boxplot() + 
-  theme_bw()
-print(gplot)
+plot_df$taxon <- factor(plot_df$taxon, levels = c('Halenia umbellata', 'Lachemilla orbiculata', 'Paspalum bonplandianum', 'Rhynchospora macrochaeta', 'Gaultheria glomerata', 'Vaccinium floribundum'))
+plot_df$functional_group <- as.factor(plot_df$functional_group)
 
-gplot <- ggplot(plot_df, aes(y = values, x = functional_group)) + 
-  geom_boxplot() + 
+# Function to get post-hoc test stats
+get_posthoc_stats <- function(model, group_var) {
+
+	cmp <- do.call(mcp, setNames(list("Tukey"), group_var))
+
+	stats <- glht(model, linfct = cmp) %>%
+				summary(test = adjusted("bonferroni"))
+				
+	stats.df <- cbind('Estimate' = stats$test$coefficients,
+					  'Std_Error' = stats$test$sigma,
+					  'z_value' = stats$test$tstat,
+					  'p_value' = stats$test$pvalues
+					  ) %>%
+					data.frame() %>%
+					tibble::rownames_to_column(var = 'Comparison')
+		
+	return(stats.df)
+	
+}
+
+# Function to get compact letter display of post-hoc groups
+get_letters <- function(model, group_var) {
+
+	cmp <- do.call(mcp, setNames(list("Tukey"), group_var))
+
+	letters <- glht(model, linfct = cmp) %>%
+					cld() %>%
+					.[[10]] %>%
+					.[[1]] %>%
+					toupper() %>%
+					as.list()
+					
+	return(letters)
+	
+}
+
+# Taxon analysis and boxplot
+taxon.lm <- lm(values ~ taxon, data = plot_df) # fit isn't great, but I've seen worse
+taxon.results <- car::Anova(taxon.lm, type = 2) # Not sure what type we should be using
+
+taxon.posthoc.stats <- get_posthoc_stats(model = taxon.lm, group_var = 'taxon')
+taxon.posthoc.letters <- get_letters(model = taxon.lm, group_var = 'taxon')
+
+taxon.boxplot <- ggplot(plot_df, aes(y = values, x = taxon, color = functional_group)) +
+	geom_boxplot() + 
+	stat_summary(geom = 'text',
+		label = taxon.posthoc.letters,
+		fun = max,
+		vjust = -1
+		) +
   theme_bw()
-print(gplot)
+print(taxon.boxplot)
+
+# Functional group analysis and boxplot
+fg.lm <- lm(values ~ functional_group, data = plot_df) # fit isn't great, but I've seen worse
+fg.results <- car::Anova(fg.lm, type = 2) # Not sure what type we should be using
+
+fg.posthoc.stats <- get_posthoc_stats(model = fg.lm, group_var = 'functional_group')
+fg.posthoc.letters <- get_letters(model = fg.lm, group_var = 'functional_group')
+
+fg.boxplot <- ggplot(plot_df, aes(y = values, x = functional_group)) + 
+  geom_boxplot() + 
+  stat_summary(geom = 'text',
+  	label = fg.posthoc.letters,
+	fun = max, 
+	vjust = -1 
+	) +
+  theme_bw()
+print(fg.boxplot)
+
+# Elevation analysis and scatterplot
+elevation.lm <- lm(values ~ elevation, data = plot_df) # fit isn't great, but I've seen worse
+elevation.results <- car::Anova(elevation.lm, type = 2) # Not sure what type we should be using
+
+elevation.scatterplot <- ggplot(plot_df, aes(y = values, x = elevation, color = elevation)) + 
+  geom_point() + 
+  theme_bw() +
+  annotate("text", label = "womp womp :(", x = 3200, y = 8)
+print(elevation.scatterplot)
 
 ### bar plots ----------
 plot_df <- data.frame(sp = c(Grouping_df$taxon[Grouping_df$functional_group == "Forb"], "Overlap",

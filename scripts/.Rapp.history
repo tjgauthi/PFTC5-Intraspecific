@@ -1,0 +1,501 @@
+annual.anova
+perennial.glm <- lme4::glmer(formula = perennial.biomass ~ precip*warming + (1|block), family = Gamma(link = 'identity'), data = lifecycle.data[which(lifecycle.data$perennial.biomass > 0),])
+perennial.glm <- lme4::glmer(formula = perennial.biomass ~ precip*warming + (1|block), family = Gamma(link = 'log'), data = lifecycle.data[which(lifecycle.data$perennial.biomass > 0),])
+perennial.anova <- car::Anova(perennial.glm, type = 3)
+perennial.anova
+lifecycle.glm <- lme4::glmer(formula = biomass.wt ~ precip*warming + life_cycle + (1 | block), family = Gamma(link = 'identity'), data = lifecycle.data.long)
+lifecycle.glm <- lme4::glmer(formula = biomass.wt ~ precip*warming + life_cycle + (1 | block), family = Gamma(link = 'log'), data = lifecycle.data.long)
+summary(lifecycle.glm)
+lifecycle.anova <- car::Anova(lifecycle.glm, type = 3)
+lifecycle.anova
+agb.glm <- lme4::glmer(formula = biomass.wt ~ precip*warming + pft + (1 | block), family = Gamma(link = 'identity'), data = temp.data.long)
+plot(agb.glm)
+temp.data.long$biomass.wt %<>% scale(center = F)
+temp.data.long$biomass.wt %<>% scale(center = F)#
+temp.data$grass.biomass %<>% scale(center = F)#
+temp.data$forb.biomass %<>% scale(center = F)
+lifecycle.data$biomass.wt %<>% scale(center = F)#
+lifecycle.data$perennial.biomass %<>% scale(center = F)#
+lifecycle.data$annual.biomass %<>% scale(center = F)
+lifecycle.data$biomass.wt %<>% scale(center = F)
+lifecycle.data
+lifecycle.data.long$biomass.wt %<>% scale(center = F)
+agb.glm <- lme4::glmer(formula = biomass.wt ~ precip*warming + pft + (1 | block), family = Gamma(link = 'identity'), data = temp.data.long)
+agb.anova <- car::Anova(agb.glm, type = 3)
+agb.anova
+fit(agb.glm )
+plot(agb.glm )
+qqmath(agb.glm )
+agb.glm <- lme4::glmer(formula = biomass.wt ~ precip*warming + pft + (1 | block), family = Gamma(link = 'log'), data = temp.data.long)
+qqmath(agb.glm )
+grass.glm <- lme4::glmer(formula = grass.biomass ~ precip*warming + (1 | block), family = Gamma(link = 'log'), data = temp.data[which(temp.data$grass.biomass>1),])
+temp.data
+data.frame(temp.data)
+grass.glm <- lme4::glmer(formula = grass.biomass ~ precip*warming + (1 | block), family = Gamma(link = 'log'), data = temp.data[which(temp.data$grass.biomass > 0),])
+grass.anova <- car::Anova(grass.glm, type = 3)
+ggrass.anova
+grass.anova
+plot(grass.glm)
+qqmath(grass.glm)
+forb.glm <- lme4::glmer(formula = forb.biomass ~ precip*warming + (1 | block), family = Gamma(link = 'identity'), data = temp.data)
+forb.glm <- lme4::glmer(formula = forb.biomass ~ precip*warming + (1 | block), family = Gamma(link = 'log'), data = temp.data)
+forb.anova <- car::Anova(forb.glm, type = 3)
+forb.anova
+lifecycle.glm <- lme4::glmer(formula = biomass.wt ~ precip*warming + life_cycle + (1 | block), family = Gamma(link = 'log'), data = lifecycle.data.long)
+lifecycle.anova <- car::Anova(lifecycle.glm, type = 3)
+lifecycle.anova
+lifecycle.glm <- lme4::glmer(formula = biomass.wt ~ precip*warming + life_cycle + (1 | block), family = Gamma(link = 'log'), data = lifecycle.data.long)
+lifecycle.anova <- car::Anova(lifecycle.glm, type = 3)
+lifecycle.anova
+annual.glm <- lme4::glmer(formula = annual.biomass ~ precip*warming + (1|block), family = Gamma(link = 'log'), data = lifecycle.data[which(lifecycle.data$annual.biomass > 0),])
+annual.anova <- car::Anova(annual.glm, type = 3)
+annual.anova
+perennial.glm <- lme4::glmer(formula = perennial.biomass ~ precip*warming + (1|block), family = Gamma(link = 'log'), data = lifecycle.data[which(lifecycle.data$perennial.biomass > 0),])
+perennial.anova <- car::Anova(perennial.glm, type = 3)
+perennial.anova
+annual_perennial.glm <- lme4::glmer(formula = annual_perennial.biomass ~ precip*warming + (1|block), family = Gamma(link = 'log'), data = lifecycle.data[which(lifecycle.data$perennial.biomass > 0),])
+annual_perennial.glm <- lme4::glmer(formula = annual_perennial.biomass ~ precip*warming + (1|block), family = Gamma(link = 'log'), data = lifecycle.data[which(lifecycle.data$annual_perennial.biomass > 0),])
+perennial.anova <- car::Anova(perennial.glm, type = 3)
+annual_perennial.glm <- lme4::glmer(formula = annual_biennial.biomass ~ precip*warming + (1|block), family = Gamma(link = 'log'), data = lifecycle.data[which(lifecycle.data$annual_perennial.biomass > 0),])
+library(vegan)#
+library(reshape)#
+library(dplyr)#
+library(tidyr)#
+library(haven)#
+library(ggVennDiagram)#
+#
+# Read and prep data#
+hdc.meshSplit <- readRDS('hdc.meshSplit.rds')#
+					%>% mutate(rdc_hdc_ratio = rdc_2000um/hdc)#
+frb <- read.csv('/Users/lauraj9897/Dropbox/root_derived_carbon_ms/Data/bace_frb.csv')#
+frb.set2 <- frb %>%#
+				dplyr::filter(set == 2)#
+agb <- read.csv('/Users/lauraj9897/Dropbox/root_derived_carbon_ms/Data/bace_agb.csv') %>%#
+			mutate_if(is.character, as.factor) %>%#
+			dplyr::select(-comments)#
+#
+# Aggregate Data#
+agb.aggregate <- aggregate(biomass.wt ~ plot + species, data = agb, sum)#
+agb.biomass.sum <- aggregate(biomass.wt ~ plot, data = agb, sum)#
+#
+# Recast to matrix and back to data frame#
+plot.species <- reshape::cast(data = agb.aggregate, plot ~ species, value = 'biomass.wt', FUN = mean) %>% data.frame#
+#
+# Replace na with zeros#
+plot.species$Poa_tri <- replace(plot.species$Poa_tri, which(plot.species$Poa_tri < 0), NA)#
+plot.species$Oxa_str <- replace(plot.species$Oxa_str, which(plot.species$Oxa_str < 0), NA)#
+plot.species[is.na(plot.species)] <- 0
+agb.subset.aggregate <- aggregate(biomass.wt ~ plot + species, data = agb.subset, sum)
+agb.subset.biomass.sum <- aggregate(biomass.wt ~ plot, data = agb.subset, sum)
+agb.subset.aggregate
+agb.subset.biomass.sum <- aggregate(biomass.wt ~ plot, data = agb.subset, sum)
+agb.subset.biomass.sum
+plot.species.subset <- reshape::cast(data = agb.subset.aggregate, plot ~ species, value = 'biomass.wt', FUN = mean) %>% data.frame
+plot.species.subset
+plot.species.subset[is.na(plot.species.subset)] <- 0
+plot.species.subset
+which(plot.species.subset$Oxa_str < 0)
+plot.species.subset$Oxa_str < 0
+plot.NMDS <- metaMDS(plot.species.subset, k = 2) # k = the number of reduced dimensions
+stressplot(plot.NMDS)
+frb.treatment <- frb %>% unite(precip.warming, 5:6)
+treatment <- frb.treatment[order(frb.treatment$plot),] %>% filter(set == '2') %>% dplyr::select(precip.warming) %>% unlist(use.names = F)
+treatment
+order(frb.treatment$plot)
+precip <- frb[order(frb$plot),] %>% filter(set == '2') %>% select(precip) %>% unlist(use.names = F)
+precip
+warming <- frb[order(frb$plot),] %>% filter(set == '2') %>% dplyr::select(warming) %>% unlist(use.names = F)
+precip <- frb[order(frb$plot),] %>% filter(set == '2') %>% dplyr::select(precip) %>% unlist(use.names = F)
+warming
+plot.species.subset
+frb
+install.packages("TNRS")#
+TNRS::TNRS(taxonomic_names = tnrs_testfile
+)
+load(TNRS)
+library(TNRS)
+TNRS::TNRS(taxonomic_names = tnrs_testfile)
+annual.glm <- lme4::glmer(formula = annual.biomass ~ precip*warming + (1|block), family = Gamma(link = 'log'), data = lifecycle.data[which(lifecycle.data$annual.biomass > 0),])
+annual.anova <- car::Anova(annual.glm, type = 3)
+annual.anova
+perennial.glm <- lme4::glmer(formula = perennial.biomass ~ precip*warming + (1|block), family = Gamma(link = 'log'), data = lifecycle.data[which(lifecycle.data$perennial.biomass > 0),])
+perennial.anova <- car::Anova(perennial.glm, type = 3)
+perennial.anova
+agb.glm <- lme4::glmer(formula = frb ~ precip*warming + biomass.wt + (1 | block), family = Gamma(link = 'identity'), data = temp.data.long)
+agb.glm
+agb.anova <- car::Anova(agb.glm, type = 3)
+agb.anova
+agb.glm <- lme4::glmer(formula = rdc_2000um ~ precip*warming + biomass.wt + (1 | block), family = Gamma(link = 'identity'), data = temp.data.long)
+agb.glm <- lme4::glmer(formula = scale(rdc_2000um, center = F) ~ precip*warming + biomass.wt + (1 | block), family = Gamma(link = 'identity'), data = temp.data.long)
+temp.data.long
+agb.glm <- lme4::glmer(formula = scale(rdc_2000um, center = F) ~ precip*warming + agb + (1 | block), family = Gamma(link = 'identity'), data = temp.data)
+agb.glm <- lme4::glmer(formula = scale(rdc_2000um, center = F) ~ precip*warming + agb + (1 | block), family = Gamma(link = 'identity'), data = temp.data, control = glmerControl(optimizer = 'bobyqa'))
+agb.glm <- lme4::glmer(formula = scale(rdc_2000um, center = F) ~ precip*warming + agb + (1 | block), family = Gamma(link = 'identity'), data = temp.data, control = glmerControl(optimizer = 'bobyqa', maxit = 10000))
+agb.glm <- lme4::glmer(formula = scale(rdc_2000um, center = F) ~ precip*warming + scale(agb, center = F) + (1 | block), family = Gamma(link = 'identity'), data = temp.data, control = glmerControl(optimizer = 'bobyqa'))
+agb.glm <- lme4::glmer(formula = scale(rdc_2000um, center = F) ~ precip*warming + scale(agb, center = F) + (1 | block), family = Gamma(link = 'log'), data = temp.data, control = glmerControl(optimizer = 'bobyqa'))
+agb.anova <- car::Anova(agb.glm, type = 3)
+agb.anova
+frb.agb.glm <- lme4::glmer(formula = scale(frb, center = F) ~ precip*warming + scale(agb, center = F) + (1 | block), family = Gamma(link = 'log'), data = temp.data, control = glmerControl(optimizer = 'bobyqa'))
+frb.agb.anova <- car::Anova(agb.glm, type = 3)
+frb.agb.anova
+plot.pft.biomass <- agb %>%#
+						filter(pft != '') %>%#
+						group_by(plot, pft) %>%#
+						summarise_at(vars(biomass.wt), list(mean)) %>%#
+						spread(pft, biomass.wt) %>%#
+						dplyr::rename(grass.biomass = grass,#
+									  forb.biomass = forb#
+									  ) %>%#
+						replace_na(list(grass.biomass = 0)) %>%#
+						mutate(agb = grass.biomass + forb.biomass,#
+							   gf.biomass.ratio = grass.biomass/forb.biomass#
+							   )
+temp.data <- left_join(rdc.frb.full, plot.pft.biomass, by = 'plot') %>% filter(set == 2)
+temp.data$precip %<>% relevel('dry')
+temp.data$agb %<>% scale(center = F)
+temp.data$gf.biomass.ratio %<>% scale(center = F)
+temp.data$forb.biomass %<>% scale(center = F)
+temp.data$grass.biomass %<>% scale(center = F)
+gf.ratio.glm <- lme4::glmer(formula = frb ~ precip*warming + gf.biomass.ratio + (1 | block), family = Gamma(link = 'log'), data = temp.data, control = glmerControl(optimizer = 'bobyqa'))
+gf.ratio.anova <- car::Anova(gf.ratio.glm, type = 3)
+gf.ratio.anova
+gf.ratio.glm <- lme4::glmer(formula = rdc_2000um ~ precip*warming + gf.biomass.ratio + (1 | block), family = Gamma(link = 'log'), data = temp.data, control = glmerControl(optimizer = 'bobyqa'))
+gf.ratio.anova <- car::Anova(gf.ratio.glm, type = 3)
+gf.ratio.anova
+rf.ratio.plot <- ggplot(data = temp.data, aes(x = precip, y = gf.biomass.ratio, fill = precip, alpha = warming, dodge = warming)) +#
+					geom_boxplot(outlier.shape = NA) +#
+					scale_fill_viridis(discrete = TRUE,#
+										name = 'Precipitation',#
+										labels = c('Dry', 'Ambient', 'Wet')#
+										) +#
+					scale_alpha_discrete(range = c(0.4, 0.8),#
+										 name = 'Warming',#
+										 labels = c('Unheated', 'Heated'),#
+										 guide = guide_legend(override.aes = list(fill = "grey20"))#
+										 ) +#
+					geom_jitter(color = 'black',#
+							    size = 0.4,#
+							    alpha = 0.9,#
+							    position = position_jitterdodge()#
+							    ) +#
+					#facet_wrap(~pft) +#
+					ggtitle('') + xlab('Precipitation Treatment') + ylab('AGB') +#
+					theme_ipsum(axis = 'XY') +#
+					theme(#
+				    		legend.position="none",#
+				    		plot.title = element_text(size = 14),#
+				    		axis.text = element_text(size = 14),#
+				    		axis.title.x = element_text(size = 14, vjust = -1),#
+				    		axis.title.y = element_text(size = 14, vjust = 1.5),#
+				    		strip.text.x = element_text(size = 12)#
+				    	) +#
+				    guides(color = 'none', fill = guide_legend(override.aes = list(alpha = 0.6)))
+rf.ratio.plot
+hdc.gamma.glm	<- lme4::glmer(formula = hdc 	 	 ~ precip*warming*rdc_2000um + set +  (1 | block), family = Gamma(link = 'log'), data = hdc.meshSplit.noZero, glmerControl(optimizer = 'bobyqa'))
+Anova(hdc.gamma.glm, type = 3)
+hdc.gamma.glm	<- lme4::glmer(formula = hdc 	 	 ~ precip*warming*rdc_2000um + set +  (1 | block), family = Gamma(link = 'log'), data = hdc.meshSplit.noZero, glmerControl(optimizer = 'bobyqa'))
+hdc.gamma.glm
+hdc.gamma.glm	<- lme4::glmer(formula = hdc 	 	 ~ precip*warming+rdc_2000um + set +  (1 | block), family = Gamma(link = 'log'), data = hdc.meshSplit.noZero, glmerControl(optimizer = 'bobyqa'))
+hdc.gamma.glm
+hdc.bin.glm 		<- lme4::glmer(formula = hdc_nonZero ~ precip*warming*rdc_2000um + set +  (1 | block), family = binomial(link = 'logit'), data = hdc.meshSplit) # Error message here is indicating that most zeros are occurring in Set 2
+setwd('/Users/lauraj9897/Dropbox/root_derived_carbon_ms/Data')#
+#
+# Call packages#
+#library(plyr)#
+library(lmerTest)#
+library(magrittr)#
+library(multcomp)#
+library(DescTools)#
+library(car)#
+library(lme4)#
+library(lattice)#
+library(knitr)#
+library(rmarkdown)#
+#
+source('R_functions/get_letters.R')#
+#
+# Read in data#
+hdc.meshSplit <- readRDS(file = "hdc.meshSplit.rds")#
+hdc.meshSplit$precip %<>% relevel('ambient')#
+#
+# Make dummy columns for Gamma zero-inflated hurdle model (https://seananderson.ca/2014/05/18/gamma-hurdle/)#
+hdc.meshSplit$hdc_nonZero <- ifelse(hdc.meshSplit$hdc > 0, 1, 0)#
+#
+hdc.meshSplit.noZero <- hdc.meshSplit %>% filter(hdc_nonZero == 1)#
+#
+# Scale data#
+hdc.meshSplit.noZero[names(hdc.meshSplit.noZero) == 'hdc' | names(hdc.meshSplit.noZero) == 'rdc_2000um'] %<>% scale(center = F)#
+#
+# Scale and center. Microbial P will be scaled "in line" in the model due to subsetting non-zeros#
+hdc.meshSplit[names(hdc.meshSplit) == 'rdc_2000um' | names(hdc.meshSplit) == 'hdc'] %<>% scale(center = F)
+hdc.bin.glm 		<- lme4::glmer(formula = hdc_nonZero ~ precip*rdc_2000um + warming*rdc_2000um + set*rdc_2000um + (1 | block), family = binomial(link = 'logit'), data = hdc.meshSplit) # Error message here is indicating that most zeros are occurring in Set 2
+hdc.gamma.glm	<- lme4::glmer(formula = hdc 	 	 ~ precip*rdc_2000um + warming*rdc_2000um + set*rdc_2000um + (1 | block), family = Gamma(link = 'log'), data = hdc.meshSplit.noZero)
+hdc.gamma.glm
+hdc.gamma.glm	<- lme4::glmer(formula = hdc 	 	 ~ precip*rdc_2000um + warming*rdc_2000um + set + (1 | block), family = Gamma(link = 'log'), data = hdc.meshSplit.noZero)
+hdc.gamma.glm
+hdc.gamma.glm	<- lme4::glmer(formula = hdc 	 	 ~ precip*rdc_2000um*warming + set + (1 | block), family = Gamma(link = 'log'), data = hdc.meshSplit.noZero)
+hdc.gamma.glm	<- lme4::glmer(formula = hdc 	 	 ~ precip*warming*rdc_2000um + set +  (1 | block), family = Gamma(link = 'log'), data = hdc.meshSplit.noZero, glmerControl(optimizer = 'bobyqa'))
+hdc.gamma.glm
+hdc.bin.glm 		<- lme4::glmer(formula = hdc_nonZero ~ precip*warming*rdc_2000um + set + (1 | block), family = binomial(link = 'logit'), data = hdc.meshSplit) # Error message here is indicating that most zeros are occurring in Set 2
+hdc.bin.glm
+hdc.gamma.glm	<- lme4::glmer(formula = hdc 	 	 ~ precip*warming*rdc_2000um*set +  (1 | block), family = Gamma(link = 'log'), data = hdc.meshSplit.noZero, glmerControl(optimizer = 'bobyqa'))
+hdc.bin.glm
+hdc.gamma.glm
+hdc.gamma.glm	<- lme4::glmer(formula = hdc 	 	 ~ precip*warming*rdc_2000um + set +  (1 | block), family = Gamma(link = 'log'), data = hdc.meshSplit.noZero, glmerControl(optimizer = 'bobyqa'))
+hdc.bin.glm 		<- lme4::glmer(formula = hdc_nonZero ~ precip*warming*rdc_2000um + set + (1 | block), family = binomial(link = 'logit'), data = hdc.meshSplit) # Error message here is indicating that most zeros are occurring in Set 2
+hdc.gamma.glm	<- lme4::glmer(formula = hdc 	 	 ~ precip*warming*rdc_2000um + set +  (1 | block), family = Gamma(link = 'log'), data = hdc.meshSplit.noZero, glmerControl(optimizer = 'bobyqa'))
+models <- c(hdc.bin.glm,#
+			hdc.gamma.glm#
+			)#
+i <- 1#
+rmarkdown::render(input = "/Users/lauraj9897/Dropbox/root_derived_carbon_ms/Data/Plots/multi_model_anova_table.Rmd", #
+                    output_file = sprintf("/Users/lauraj9897/Dropbox/root_derived_carbon_ms/Data/Plots/table_%s.html", 'hdc~rdc'),#
+                    params = list(model = models[[i]],#
+                                  set.title = 'HDC ~ RDC',#
+                                  author = ''))
+models <- c(hdc.bin.glm,#
+			hdc.gamma.glm#
+			)#
+i <- 1#
+rmarkdown::render(input = "/Users/lauraj9897/Dropbox/root_derived_carbon_ms/Data/Plots/multi_model_anova_table.Rmd", #
+                    output_file = sprintf("/Users/lauraj9897/Dropbox/root_derived_carbon_ms/Data/Plots/table_%s.html", 'hdc~rdc'),#
+                    params = list(model = models[[i]],#
+                                  set.title = 'HDC ~ RDC',#
+                                  author = ''))
+install.load.package <- function(x) {
+if (!require(x, character.only = TRUE))#
+    install.packages(x, repos='http://cran.us.r-project.org')#
+  require(x, character.only = TRUE)#
+}
+setwd('/Users/lauraj9897/Dropbox/PFTC5-Intraspecific/scripts')
+package_vec <- c(#
+  "tidyverse",#
+  "tidylog",#
+  "stringr",#
+  "here",#
+  "gsheet"#
+)#
+sapply(package_vec, install.load.package)#
+#
+if("dataDownloader" %in% rownames(installed.packages()) == FALSE){ # KrigR check#
+  devtools::install_github("Between-the-Fjords/dataDownloader")#
+}#
+library(dataDownloader)
+dir.create("data")#
+dir.create("data/raw")#
+#
+#Download traits data from OSF#
+get_file(node = "gs8u6",#
+         file = "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv",#
+         path = "data/raw",#
+         remote_path = "traits")
+traits_raw <- read.csv(file.path("data", "raw", "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv"),#
+                       header = T,#
+                       sep = ",") %>%#
+  filter(site %in% c("WAY", "ACJ", "TRE") &#
+           year == 2020 & treatment == "C")#
+#
+#skim(traits_raw)
+unique(traits_raw$taxon)#
+rel_sp <- c("Gaultheria glomerata","Paspalum bonplandianum",#
+            "Vaccinium floribundum","Rhynchospora macrochaeta",#
+            # These were new substitutes#
+            # Check other docs for consistancy#
+            "Halenia umbellata", "Lachemilla orbiculata") #
+#
+traits <- traits_raw %>%#
+  filter(taxon %in% rel_sp) #
+#
+unique(traits$taxon)
+rm('traits_raw')#
+#
+### 3) Data Structuring ----#
+#
+#removing obsolete columns after filtering#
+traits<-traits %>% #
+  select (-c(year,season,month,treatment,burn_year,latitude,longitude,course))#
+#
+#Transform from long to wide format#
+traits_wide<-traits %>%#
+  pivot_wider(names_from = trait, values_from = value)#
+#
+#adding unique plot, individual, and leaf#
+traits_wide$plot_uid <- paste(traits_wide$site,traits_wide$plot_id, sep = "_")#
+traits_wide$individual_uid <- paste(traits_wide$site,traits_wide$plot_id, traits_wide$individual_nr, sep = "_")#
+traits_wide$leaf_uid <- paste(traits_wide$site,traits_wide$plot_id, traits_wide$individual_nr, traits_wide$id, sep = "_")#
+#
+# End of script ----
+traits
+str(traits)
+head(traits)
+head(traits_raw)
+traits_raw <- read.csv(file.path("data", "raw", "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv"),#
+                       header = T,#
+                       sep = ",") %>%#
+  filter(site %in% c("WAY", "ACJ", "TRE") &#
+           year == 2020 & treatment == "C")
+head(traits_raw)
+rm(list=ls())#
+#
+## Directories ------------------------------------------------------------#
+## Packages ---------------------------------------------------------------#
+install.load.package <- function(x) {#
+  if (!require(x, character.only = TRUE))#
+    install.packages(x, repos='http://cran.us.r-project.org')#
+  require(x, character.only = TRUE)#
+}#
+package_vec <- c(#
+  "hypervolume"# names of the packages required placed here as character objects#
+)#
+sapply(package_vec, install.load.package)#
+#
+## Functionality ----------------------------------------------------------#
+`%nin%` <- Negate(`%in%`) # a function for negation of %in% function #
+#
+# DATA LOADING ============================================================#
+source("scripts/0_data_import.R") # sourcing data import script#
+traits_df <- na.omit(traits_wide[ , c(-2:-4, -16:-18)])
+source("0_data_import.R") # sourcing data import script
+traits_df <- na.omit(traits_wide[ , c(-2:-4, -16:-18)])
+head(traits_df)
+traits_wide
+head(traits_wide)
+head(data.frame(traits_wide), 10)
+og.flour.quant <- 1000
+og.flour.conc <- 0.14
+mix.flour.conc <- 11.5
+gluten.conc = 0.73
+w <- og.flour.quant#
+	x <- og.flour.conc#
+	y <- mix.flour.conc#
+	z <- gluten.conc
+w = a + b
+w*x = a*y + b*z
+M <- matrix(c(1, 1
+y, z), 2, 2, byrow = TRUE)
+mix.flour.conc
+w <- og.flour.quant
+x <- og.flour.conc
+y <- mix.flour.conc
+z <- gluten.conc
+M <- matrix(c(1, 1#
+				  y, z), 2, 2, byrow = TRUE)
+M <- matrix(c(1, 1,#
+				  y, z), 2, 2, byrow = TRUE)
+N <- c(w, w*x)
+solve(M, N)
+og.flour.quant
+og.flour.conc
+w*x
+sol <- solve(M, N)
+sol[1]
+sol[2]
+sol[1]*y + sol[2]*
+x
+sol[1]*y + sol[2]*z
+z
+showEqn(M, N)
+library(lpSolve)
+sol <- lp('max', c(0,0), lhs, eq.dir, rhs)
+lhs <- matrix(c(1, 1,#
+				  y, z,#
+				  1, 0,#
+				  0, 1), nrow = 4, ncol = 2, byrow = TRUE)#
+	eq.dir <- c('=', '=', '>', '>=')#
+	rhs <- c(w, w*x, 0, 0)#
+	# solve equations#
+	#sol <- solve(lhs, rhs)#
+	sol <- lp('max', c(0,0), lhs, eq.dir, rhs)
+sol
+lhs <- matrix(c(1, 1,#
+				  y, z), nrow = 2, ncol = 2, byrow = TRUE)#
+	#eq.dir <- c('=', '=', '>', '>=')#
+	rhs <- c(w, w*x)
+sol <- solve(lhs, rhs)
+sol
+library(polySolve)
+install.packages('polySolve')
+library(polySolve)
+b
+-(w*x - w*y)/(y+z)
+b = -(w*x - w*y)/(y+z)
+a = w - b
+a
+b
+a*y + b*z = w*x
+a*y + b*z
+w*x
+z
+y
+mix.flour.conc <- 0.115
+b = -(w*x - w*y)/(y+z)
+a = w - b
+a
+b
+w <- og.flour.quant#
+	x <- og.flour.conc#
+	y <- mix.flour.conc#
+	z <- gluten.conc
+b = -(w*x - w*y)/(y+z)#
+	a = w - b
+b
+a
+lhs <- matrix(c(1, 1,#
+				  	y, z), nrow = 2, ncol = 2, byrow = TRUE)#
+	#eq.dir <- c('=', '=', '>', '>=')#
+	rhs <- c(w, w*x)
+sol <- solve(lhs, rhs)
+sol
+a + b
+a
+a <- sol[1]
+b <- sol[2]
+a + b
+a*y + b*z
+w*x
+paste('Mix', mix.flour.quant, 'units of', mix.flour.conc*100, '% protein flour with', gluten.quant, 'units of', gluten.conc*100, '% protein vital wheat gluten to equal', og.flour.quant, 'units of', og.flour.conc*100, '% protein flour.')
+mix.flour.quant <- sol[a]
+gluten.quant <- sol[b]
+paste('Mix', mix.flour.quant, 'units of', mix.flour.conc*100, '% protein flour with', gluten.quant, 'units of', gluten.conc*100, '% protein vital wheat gluten to equal', og.flour.quant, 'units of', og.flour.conc*100, '% protein flour.')
+mix.flour.quant <- sol[1]
+gluten.quant <- sol[2]
+paste0('Mix ', mix.flour.quant, 'units of ', mix.flour.conc*100, '% protein flour with ', gluten.quant, 'units of ', gluten.conc*100, '% protein vital wheat gluten to equal ', og.flour.quant, 'units of ', og.flour.conc*100, '% protein flour.')
+paste0('Mix ', round(mix.flour.quant, 1), ' units of ', mix.flour.conc*100, '% protein flour with ', round(gluten.quant, 1), ' units of ', gluten.conc*100, '% protein vital wheat gluten to equal ', og.flour.quant, ' units of ', og.flour.conc*100, '% protein flour.')
+protein.calculator <- function(og.flour.quant, og.flour.conc, mix.flour.conc, gluten.conc = 0.73) {#
+	library(lpSolve)#
+	# Re-assign parameter names#
+	#a <- mix.flour.quant#
+	#b <- gluten.quant#
+	w <- og.flour.quant#
+	x <- og.flour.conc#
+	y <- mix.flour.conc#
+	z <- gluten.conc#
+	# Write equations#
+	#a + b = w#
+	#a*y + b*z = w*x#
+		# Constraints (haven't figured out how to add these yet, but I don't think they are strictly necessary here)#
+	#a > 0#
+	#b >= 0#
+	#a > b#
+	# Write coefficients as matrix#
+	lhs <- matrix(c(1, 1,#
+				  	y, z), nrow = 2, ncol = 2, byrow = TRUE)#
+	#eq.dir <- c('=', '=', '>', '>=')#
+	rhs <- c(w, w*x)#
+	# solve equations#
+	sol <- solve(lhs, rhs)#
+	mix.flour.quant <- sol[1]#
+	gluten.quant <- sol[2]#
+	return(paste0('Mix ', round(mix.flour.quant, 1), ' units of ', mix.flour.conc*100, '% protein flour with ', round(gluten.quant, 1), ' units of ', gluten.conc*100, '% protein vital wheat gluten to equal ', og.flour.quant, ' units of ', og.flour.conc*100, '% protein flour.'))#
+}
+# Assign concentrations and amounts#
+ap.flour.conc <- 0.115#
+vwg.conc <- 0.73#
+bread.flour.conc <- 0.135#
+bread.flour.quant <- 1000#
+#
+lil.recipe <- protein.calculator(og.flour.quant = bread.flour.quant,#
+				   				 og.flour.conc = bread.flour.conc,#
+				   				 mix.flour.conc = ap.flour.conc,#
+				   				 gluten.conc = vwg.conc)
+lil.recipe
