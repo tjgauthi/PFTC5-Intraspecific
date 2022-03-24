@@ -93,6 +93,10 @@ traits_all$plot_uid <- paste(traits_all$site,traits_all$plot_id, sep = "_")
 traits_all$individual_uid <- paste(traits_all$site,traits_all$plot_id, traits_all$individual_nr, sep = "_")
 traits_all$leaf_uid <- paste(traits_all$site,traits_all$plot_id, traits_all$individual_nr, traits_all$id, sep = "_")
 
+# Transform traits_all to wide format
+
+traits_all_wide<-traits_all %>%
+  pivot_wider(names_from = trait, values_from = value)
 
 
 # End of script ----
