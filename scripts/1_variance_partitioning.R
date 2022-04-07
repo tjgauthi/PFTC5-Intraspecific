@@ -40,7 +40,7 @@ output <- data.frame(NULL)
 for(i in unique(traits_log$trait)){
   #This code all comes from Julie Messier's web site
   mod<-lmer(value~1+(1|functional_group/taxon/individual_nr)+(1|site), 
-            data=traits %>% filter(trait == i), 
+            data=traits_log %>% filter(trait == i), 
             na.action=na.omit)
   variances<-c(unlist(lapply(VarCorr(mod),diag)), 
                attr(VarCorr(mod),"sc")^2) #get variances
@@ -89,7 +89,61 @@ VP_Plot<-ggplot(output, aes(x=trait, y=value))+
   scale_y_continuous(expand=c(0,0),limits=c(0,100.1))+#this forces the graph to actually start at 0% and end at 100%
   #theme(legend.position = "none")+
   scale_x_discrete(labels=function(x){sub("\\s", "\n", x)}) +
-  scale_fill_manual(values = pal_vp) +
+  #scale_fill_manual(values = pal_vp) +
   theme(axis.text.x = element_text(angle = 330, hjust = 0))
 VP_Plot
 
+#### look at variance partitioning for all species
+#randomly subsample from the 6 species of interest from part 1. How should it be subsampled, though? 
+
+
+#in traits, we need to log transform the traits that should be transformed, and create individual uid column.
+traits_all_log <- traits_all %>% 
+  mutate(value = log(value)) %>% 
+  separate(taxon, into = c("genus", "species"), sep = " ", remove = F)
+
+output_all <- data.frame(NULL)
+for(i in unique(traits_all_log$trait)){
+  #This code all comes from Julie Messier's web site
+  mod<-lmer(value~1+(1|family/genus/taxon)+(1|site), 
+            data=traits_all_log %>% filter(trait == i), 
+            na.action=na.omit)
+  variances<-c(unlist(lapply(VarCorr(mod),diag)), 
+               attr(VarCorr(mod),"sc")^2) #get variances
+  
+  var.comp<-variances/sum(variances)
+  
+  var.comp<-as.data.frame(var.comp) #creates a dataframe from the values
+  var.comp<-cbind(rownames(var.comp),data.frame(var.comp,row.names=NULL)) #changes row names into a column
+  var.comp<-melt(var.comp,value.name="value") #makes var.comp into a variable
+  names(var.comp)[1]<-"Scale" #changes the first column name to "scale"
+  
+  var.comp$value<-var.comp$value *100 #changes values into % 
+  
+  var.comp<- var.comp %>%
+    mutate(Scale = plyr::mapvalues(Scale, from = c(""), to = c("Unexplained"))) %>% 
+    mutate(Scale = factor(Scale, levels = c("Unexplained", "site.(Intercept)","taxon:(genus:family).(Intercept)", "genus:family.(Intercept)","family.(Intercept)"))) %>% 
+    # group_by(variable)%>%
+    arrange(variable, Scale)%>%
+    mutate(labypos=100-(cumsum(value)-0.5*value)) %>%
+    #subset(value>1) %>% #this line removes variance partitioning less than 1% so that there are no zero labels
+    mutate(trait = i)
+  
+  output_all <- bind_rows(output_all, var.comp)
+}
+
+
+VP_Plot_all<-ggplot(output_all, aes(x=trait, y=value))+
+  geom_col(aes(fill=Scale))+
+  geom_text(aes(y=labypos, label=round(value,digits = 0)),colour="white", size = 5)+
+  #scale_fill_manual (values = scales_colours)+
+  ylab("Proportion of Variance (%)")+
+  xlab("")+
+  blank_theme+
+  labs(fill = "Ecological Scale")+
+  scale_y_continuous(expand=c(0,0),limits=c(0,100.1))+#this forces the graph to actually start at 0% and end at 100%
+  #theme(legend.position = "none")+
+  scale_x_discrete(labels=function(x){sub("\\s", "\n", x)}) +
+  #scale_fill_manual(values = pal_vp) +
+  theme(axis.text.x = element_text(angle = 330, hjust = 0))
+VP_Plot_all
