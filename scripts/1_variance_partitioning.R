@@ -90,7 +90,8 @@ VP_Plot<-ggplot(output, aes(x=trait, y=value))+
   #theme(legend.position = "none")+
   scale_x_discrete(labels=function(x){sub("\\s", "\n", x)}) +
   #scale_fill_manual(values = pal_vp) +
-  theme(axis.text.x = element_text(angle = 330, hjust = 0))
+  theme(axis.text.x = element_text(angle = 330, hjust = 0))+
+  labs(title = "Focal Species")
 VP_Plot
 
 #### look at variance partitioning for all species
@@ -98,9 +99,18 @@ VP_Plot
 
 
 #in traits, we need to log transform the traits that should be transformed, and create individual uid column.
+leaf_count_all <- traits_all_wide %>% 
+  group_by(site, plot_uid, individual_uid, taxon) %>% 
+  summarize(n = n())
+
+table(leaf_count_all$n)
+
+
 traits_all_log <- traits_all %>% 
   mutate(value = log(value)) %>% 
-  separate(taxon, into = c("genus", "species"), sep = " ", remove = F)
+  separate(taxon, into = c("genus", "species"), sep = " ", remove = F) %>% 
+  group_by(site, plot_id, individual_nr, taxon, trait, family, genus) %>% 
+  slice_sample(n = 3) #subset down to at most 3 measurements of a species trait from each plot, not sure if this is grouped how we want for subsetting.
 
 output_all <- data.frame(NULL)
 for(i in unique(traits_all_log$trait)){
@@ -145,5 +155,6 @@ VP_Plot_all<-ggplot(output_all, aes(x=trait, y=value))+
   #theme(legend.position = "none")+
   scale_x_discrete(labels=function(x){sub("\\s", "\n", x)}) +
   #scale_fill_manual(values = pal_vp) +
-  theme(axis.text.x = element_text(angle = 330, hjust = 0))
+  theme(axis.text.x = element_text(angle = 330, hjust = 0)) +
+  labs(title = "All Species")
 VP_Plot_all
