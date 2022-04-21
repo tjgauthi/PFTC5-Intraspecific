@@ -20,7 +20,8 @@ install.load.package <- function(x) {
 package_vec <- c(
   "hypervolume",
   "car",
-  "multcomp"
+  "multcomp",
+  "ggpubr"
 )
 sapply(package_vec, install.load.package)
 
@@ -137,6 +138,18 @@ get_letters <- function(model, group_var) {
 	
 }
 
+# Basic plotting theme
+my_theme <- theme_bw() +
+			theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+# Color (short for 'colour') scheme 
+# 3x2 scale (PFGs x species -- for linear models)
+# Forb species (blues): H. umbellata = "#016392"; L. orbiculata = "#A0CBE8"
+# Graminoid species (orange-ish?): P. bonplandianum = "#E19825"; R. macrochaeta = "#F7C480"
+# Woody species (greens): G. glomerata = "#3E8853"; V. floribundum = "#9FCD99"
+pal_lm <- c("#016392", "#A0CBE8", "#E19825", "#F7C480", "#3E8853", "#9FCD99")
+# scales::show_col(pal_lm) 
+
 # Taxon analysis and boxplot
 taxon.lm <- lm(values ~ taxon, data = plot_df) # fit isn't great, but I've seen worse
 taxon.results <- car::Anova(taxon.lm, type = 2) # Not sure what type we should be using
@@ -144,14 +157,22 @@ taxon.results <- car::Anova(taxon.lm, type = 2) # Not sure what type we should b
 taxon.posthoc.stats <- get_posthoc_stats(model = taxon.lm, group_var = 'taxon')
 taxon.posthoc.letters <- get_letters(model = taxon.lm, group_var = 'taxon')
 
-taxon.boxplot <- ggplot(plot_df, aes(y = values, x = taxon, color = functional_group)) +
+fg.comps <- list(c("Forb", "Graminoid"), c("Graminoid", "Woody"), c("Forb", "Woody"))
+
+taxon.boxplot <- ggplot(plot_df, aes(y = values, x = functional_group, fill = taxon)) +
 	geom_boxplot() + 
-	stat_summary(geom = 'text',
-		label = taxon.posthoc.letters,
-		fun = max,
-		vjust = -1
-		) +
-  theme_bw()
+	scale_fill_manual(values = pal_lm) +
+	# Uncomment the chunk below for letters from glht (see function "get_letters" above)
+	# stat_summary(geom = 'text',
+		# label = tolower(taxon.posthoc.letters),
+		# fun = max,
+		# vjust = -1,
+		# position = position_dodge(0.75)
+		# ) +
+	stat_compare_means(comparisons = fg.comps, method = 't.test', label = 'p.signif') +
+	stat_compare_means(aes(group = taxon), label = 'p.signif', label.y = c(5, 9, 7.5)) +
+	my_theme +
+	ylab('Hypervolume Size') + xlab('Functional Group') + labs(fill = 'Species')
 print(taxon.boxplot)
 
 # Functional group analysis and boxplot
@@ -161,23 +182,31 @@ fg.results <- car::Anova(fg.lm, type = 2) # Not sure what type we should be usin
 fg.posthoc.stats <- get_posthoc_stats(model = fg.lm, group_var = 'functional_group')
 fg.posthoc.letters <- get_letters(model = fg.lm, group_var = 'functional_group')
 
-fg.boxplot <- ggplot(plot_df, aes(y = values, x = functional_group)) + 
+# This plot is redundant if we plan on using "taxon.boxplot"
+fg.boxplot <- ggplot(plot_df, aes(y = values, x = functional_group, fill = functional_group)) + 
   geom_boxplot() + 
-  stat_summary(geom = 'text',
-  	label = fg.posthoc.letters,
-	fun = max, 
-	vjust = -1 
-	) +
-  theme_bw()
+  scale_fill_manual(values = pal_lm[c(1, 3, 5)]) +
+  # stat_summary(geom = 'text',
+  	# label = fg.posthoc.letters,
+	# fun = max, 
+	# vjust = -1 
+	# ) +
+  stat_compare_means(comparisons = fg.comps, method = 't.test', label = 'p.signif') +
+  my_theme +
+  theme(legend.position = 'none') +
+  ylab('Hypervolume Size') + xlab('Functional Group')
 print(fg.boxplot)
 
 # Elevation analysis and scatterplot
 elevation.lm <- lm(values ~ elevation, data = plot_df) # fit isn't great, but I've seen worse
 elevation.results <- car::Anova(elevation.lm, type = 2) # Not sure what type we should be using
 
+# I'm not sure the elevation figure is necessary. Not very impactful
 elevation.scatterplot <- ggplot(plot_df, aes(y = values, x = elevation, color = elevation)) + 
-  geom_point() + 
-  theme_bw() +
+  geom_point() +
+  scale_color_gradientn(colors = terrain.colors(7)) +
+  my_theme +
+  ylab('Hypervolume Size') + xlab('Elevation (MASL)') + labs(color = 'Elevation') +
   annotate("text", label = "womp womp :(", x = 3200, y = 8)
 print(elevation.scatterplot)
 
