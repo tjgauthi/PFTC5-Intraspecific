@@ -1,6 +1,6 @@
 #### Data analysis - Ordination ####
 
-## Authors: 
+## Authors: Fernanda, Elisa, Korina, Augustina, Fiorella ...
 
 #### Load libraries ####
 library(dplyr)
@@ -12,14 +12,18 @@ library(readr)
 library(factoextra)
 
 #* TO DO: 
+#* 1- try use ggplot2 intead of bbplot
+#* 2- plot sites PCA (maybe like ellipses?!) 
+#* 3 plot species (colored or similar)
+#* 
 #* PCA - use traits as  explanatory variables
-#* How traits values vary between different sites?
+#* How traits values vary between different sites? 
 
 
 # upload data 
 data <- read_csv("data/raw/PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv")
 
-# select 2020, sites (WAY, ACJ and TRE), treatment and triats we are interest in 
+# select 2020, sites (WAY, ACJ and TRE), treatment and traits we are interest in 
 data <- data %>%
   filter(site %in% c("WAY", "ACJ", "TRE") &
            year == 2020 & 
@@ -29,9 +33,7 @@ data <- data %>%
 # should we log transform some of the traits?
 
 data$site <- factor(data$site)
-# data$site <- as.numeric(data$site)
 data$taxon <- factor(data$taxon)
-# data$taxon <- as.numeric(data$taxon)
 data$functional_group <- factor(data$functional_group)
 # data$functional_group <- as.numeric(data$functional_group)
 # data <- data[!is.na(data$individual_nr),]
@@ -43,10 +45,10 @@ unique(data$functional_group)
 unique(data$trait)
 
 
-# PCA - plot 1 
+### PCA - plot 1 
 df1 <- data %>% 
   dplyr::select(id:value) %>% 
-  filter(!id %in% c("CXX4125", "BDN3235")) %>% 
+  filter(!id %in% c("CXX4125", "BDN3235")) %>% # cut off two outliers 
   tidyr::pivot_wider(names_from = trait, values_from = value) %>% 
   tibble::column_to_rownames("id") 
 
