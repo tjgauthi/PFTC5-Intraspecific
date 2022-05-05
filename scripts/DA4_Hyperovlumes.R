@@ -151,8 +151,9 @@ pal_lm <- c("#016392", "#A0CBE8", "#E19825", "#F7C480", "#3E8853", "#9FCD99")
 # scales::show_col(pal_lm) 
 
 # Taxon analysis and boxplot
-taxon.lm <- lm(values ~ taxon, data = plot_df) # fit isn't great, but I've seen worse
-taxon.results <- car::Anova(taxon.lm, type = 2) # Not sure what type we should be using
+taxon.lm <- lm(values ~ 0 + taxon, data = plot_df) # fit isn't great, but I've seen worse
+taxon.results <- car::Anova(taxon.lm, type = 2)
+taxon.r2 <- summary(taxon.lm)$adj.r.squared
 
 taxon.posthoc.stats <- get_posthoc_stats(model = taxon.lm, group_var = 'taxon')
 taxon.posthoc.letters <- get_letters(model = taxon.lm, group_var = 'taxon')
@@ -176,8 +177,9 @@ taxon.boxplot <- ggplot(plot_df, aes(y = values, x = functional_group, fill = ta
 print(taxon.boxplot)
 
 # Functional group analysis and boxplot
-fg.lm <- lm(values ~ functional_group, data = plot_df) # fit isn't great, but I've seen worse
-fg.results <- car::Anova(fg.lm, type = 2) # Not sure what type we should be using
+fg.lm <- lm(values ~ 0 + functional_group, data = plot_df) # fit isn't great, but I've seen worse
+fg.results <- car::Anova(fg.lm, type = 2)
+fg.r2 <- summary(fg.lm)$adj.r.squared
 
 fg.posthoc.stats <- get_posthoc_stats(model = fg.lm, group_var = 'functional_group')
 fg.posthoc.letters <- get_letters(model = fg.lm, group_var = 'functional_group')
@@ -199,7 +201,11 @@ print(fg.boxplot)
 
 # Elevation analysis and scatterplot
 elevation.lm <- lm(values ~ elevation, data = plot_df) # fit isn't great, but I've seen worse
-elevation.results <- car::Anova(elevation.lm, type = 2) # Not sure what type we should be using
+elevation.results <- summary(elevation.lm)$coefficients %>%
+	data.frame %>%
+	rownames_to_column('Effect') %>%
+	mutate(adj.r2 = c(NA, summary(elevation.lm)$adj.r.squared)) %>%
+	dplyr::rename('SE' = Std..Error, 'p.value' = 'Pr...t..')
 
 # I'm not sure the elevation figure is necessary. Not very impactful
 elevation.scatterplot <- ggplot(plot_df, aes(y = values, x = elevation, color = elevation)) + 
