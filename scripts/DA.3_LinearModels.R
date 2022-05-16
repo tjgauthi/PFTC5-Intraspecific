@@ -26,36 +26,45 @@ traits_chem_final$taxon <- fct_reorder(traits_chem_final$taxon,
 #
 
 # Idea 1 - trait-trait relationships at the overall, species, and individual level
+# Ordinary least squares approach
+
+# Scale and centre trait values
+traits_scaled = traits_chem_final %>% 
+  mutate(ldmc_sc = scale(ldmc), sla_sc = scale(sla_cm2_g), 
+         leaf_thickness_sc = scale(leaf_thickness_mm))
+
+# Make new uniqueID
+traits_scaled$ind_uid_new = paste(traits_scaled$site,
+                                  traits_scaled$plot_id,
+                                  traits_scaled$taxon,
+                                  traits_scaled$individual_nr) %>% as.factor()
 
 # Generate plot showing overall, species, and individual regressions
-p1 = ggplot(traits_chem_final, aes(x=ldmc, y=leaf_thickness_mm, color=taxon)) +
-  #geom_smooth(method="lm") + 
-  #geom_smooth(method="lm", aes(color=NULL)) +
+p1 = ggplot(traits_scaled, aes(x=ldmc_sc, y=leaf_thickness_sc, color=taxon)) +
   my_theme +
   scale_color_manual(values = pal_lm) +
-  ylim(0,0.625) +
+  ylim(-2,3) +
   geom_point(size=0.9) +
   geom_smooth(method="lm", se=F,lwd=0.4, color="grey80", aes(group=ind_uid_new)) +
   geom_smooth(method="lm", se=F, lwd=0.8, aes(color=taxon)) +
-  geom_smooth(method="lm", se=F, color="black", lty=2) #+
-  #theme(legend.position = "none")
+  geom_smooth(method="lm", se=F, color="black", lty=2) 
 
 # Make inset plot showing distribution of slopes for individuals
-trait.lm.list = nlme::lmList(leaf_thickness_mm ~ ldmc | ind_uid_new, data = traits_chem_final, na.action = na.exclude)
-model_coef = subset(coef(trait.lm.list), !is.na(ldmc))
+trait.lm.list = nlme::lmList(leaf_thickness_sc ~ ldmc_sc | ind_uid_new, data = traits_scaled, na.action = na.exclude)
+model_coef = subset(coef(trait.lm.list), !is.na(ldmc_sc))
 
-z = lm(leaf_thickness_mm ~ ldmc, traits_chem_final)
-species.lm.list = nlme::lmList(leaf_thickness_mm ~ ldmc | taxon, data = traits_chem_final, na.action = na.exclude)
+z = lm(leaf_thickness_sc ~ ldmc_sc, traits_scaled)
+species.lm.list = nlme::lmList(leaf_thickness_sc ~ ldmc_sc | taxon, data = traits_scaled, na.action = na.exclude)
 species.slopes = data.frame(coef(species.lm.list))
 species.slopes$taxon = rownames(species.slopes)
 
 inset_plot = ggplotGrob(
-  ggplot(data = model_coef, aes(x = ldmc)) + 
+  ggplot(data = model_coef, aes(x = ldmc_sc)) + 
     geom_density() + 
     theme_classic() +
     geom_vline(xintercept = 0, lty = 3) +
     geom_vline(xintercept = coef(z)[2], lty = 2) +
-    geom_vline(data = species.slopes, aes(xintercept = ldmc, color=taxon)) +
+    geom_vline(data = species.slopes, aes(xintercept = ldmc_sc, color=taxon)) +
     xlim(c(-3,3)) +
     xlab("Slope") +
     #ylim(c(0,22)) +
@@ -64,11 +73,183 @@ inset_plot = ggplotGrob(
     theme(axis.title = element_text( size=8),
           rect = element_rect(fill = "transparent"),
           plot.background = element_rect(colour = "transparent") 
-          )
+    )
 )
 
-p1 + annotation_custom(grob = inset_plot, xmin = 0, xmax = 0.3, ymin = 0.45, ymax = 0.63)
+p1 + annotation_custom(grob = inset_plot, xmin = -3.4, xmax = -0.2, ymin = 1.6, ymax = 3)
 
+#
+#
+#
+#
+#
+# Same plot, but using linear mixed model
+# Build model with random slopes for individul nested in taxon
+z1 = lmer(leaf_thickness_sc ~ ldmc_sc +  (ldmc_sc|taxon/ind_uid_new),
+          REML = F,
+          data = traits_scaled)
+
+# Loop over species, grab species name and min and max ldmc value
+pred.dat = c()
+for (i in unique(traits_scaled$taxon)) {
+  cur.dat = subset(traits_scaled, taxon == i & !is.na(ldmc_sc))
+  new.dat = data.frame(taxon = i, ldmc_sc = c(min(cur.dat$ldmc_sc), max(cur.dat$ldmc_sc)))
+  pred.dat = bind_rows(pred.dat,new.dat)
+}
+
+# Generate predicted lines at the taxon level
+pred.dat$leaf_thickness_sc = predict(z1, pred.dat, re.form =   (~ldmc_sc|taxon))
+
+# Generate oveall relationship prediction
+pred.overall = data.frame(ldmc_sc = c(min(traits_scaled$ldmc_sc, na.rm=T),
+                                      max(traits_scaled$ldmc_sc, na.rm=T)))
+pred.overall$leaf_thickness_sc = predict(z1, pred.overall, re.form=NA)
+
+# Generate individual level predictions
+pred.ind = c()
+for (i in unique(traits_scaled$ind_uid_new)) {
+  cur.dat = subset(traits_scaled, ind_uid_new == i & !is.na(ldmc_sc))
+  new.dat = data.frame(ind_uid_new = i, taxon = unique(cur.dat$taxon), ldmc_sc = c(min(cur.dat$ldmc_sc), max(cur.dat$ldmc_sc)))
+  pred.ind = bind_rows(pred.ind,new.dat)
+}
+pred.ind$leaf_thickness_sc = predict(z1, pred.ind)
+
+
+# Generate plot showing overall, species, and individual regressions
+p2 = ggplot(traits_scaled, aes(x=ldmc_sc, y=leaf_thickness_sc, color=taxon)) +
+  my_theme +
+  scale_color_manual(values = pal_lm) +
+  ylim(-2,3) +
+  geom_point(size=0.9) +
+  geom_line(data = pred.ind, color="grey80", aes(group=ind_uid_new)) +
+  geom_line(data = pred.dat, lwd=0.8, aes(color=taxon)) +
+  geom_line(data = pred.overall, color = "black", lty = 2, aes(color = NA))
+
+
+model_coef = c()
+model_coef$ldmc = ranef(z1)$`ind_uid_new:taxon`$ldmc_sc
+model_coef = as.data.frame(model_coef)
+
+species.slopes = ranef(z1)$taxon
+species.slopes$taxon = rownames(species.slopes)
+as.data.frame(species.slopes)
+
+inset_plot = ggplotGrob(
+  ggplot(data = model_coef, aes(x = ldmc)) + 
+    geom_density() + 
+    theme_classic() +
+    geom_vline(xintercept = 0, lty = 3) +
+    geom_vline(xintercept = fixef(z1)[2], lty = 2) +
+    geom_vline(data = species.slopes, aes(xintercept = ldmc_sc, color=taxon)) +
+    xlim(c(-0.5,0.5)) +
+    xlab("Slope") +
+    #ylim(c(0,22)) +
+    scale_color_manual(values = pal_lm) +
+    theme(legend.position = "none") +
+    theme(axis.title = element_text( size=8),
+          rect = element_rect(fill = "transparent"),
+          plot.background = element_rect(colour = "transparent") 
+    )
+)
+
+p2 + annotation_custom(grob = inset_plot, xmin = -3.4, xmax = -0.2, ymin = 1.6, ymax = 3)
+
+
+
+
+
+
+# 
+# 
+# 
+# 
+# 
+# 
+# # Generate plot showing overall, species, and individual regressions
+# p1 = ggplot(traits_chem_final, aes(x=ldmc, y=leaf_thickness_mm, color=taxon)) +
+#   #geom_smooth(method="lm") + 
+#   #geom_smooth(method="lm", aes(color=NULL)) +
+#   my_theme +
+#   scale_color_manual(values = pal_lm) +
+#   ylim(0,0.625) +
+#   geom_point(size=0.9) +
+#   geom_smooth(method="lm", se=F,lwd=0.4, color="grey80", aes(group=ind_uid_new)) +
+#   geom_smooth(method="lm", se=F, lwd=0.8, aes(color=taxon)) +
+#   geom_smooth(method="lm", se=F, color="black", lty=2) #+
+#   #theme(legend.position = "none")
+# 
+# # Make inset plot showing distribution of slopes for individuals
+# trait.lm.list = nlme::lmList(leaf_thickness_mm ~ ldmc | ind_uid_new, data = traits_chem_final, na.action = na.exclude)
+# model_coef = subset(coef(trait.lm.list), !is.na(ldmc))
+# 
+# z = lm(leaf_thickness_mm ~ ldmc, traits_chem_final)
+# species.lm.list = nlme::lmList(leaf_thickness_mm ~ ldmc | taxon, data = traits_chem_final, na.action = na.exclude)
+# species.slopes = data.frame(coef(species.lm.list))
+# species.slopes$taxon = rownames(species.slopes)
+# 
+# inset_plot = ggplotGrob(
+#   ggplot(data = model_coef, aes(x = ldmc)) + 
+#     geom_density() + 
+#     theme_classic() +
+#     geom_vline(xintercept = 0, lty = 3) +
+#     geom_vline(xintercept = coef(z)[2], lty = 2) +
+#     geom_vline(data = species.slopes, aes(xintercept = ldmc, color=taxon)) +
+#     xlim(c(-3,3)) +
+#     xlab("Slope") +
+#     #ylim(c(0,22)) +
+#     scale_color_manual(values = pal_lm) +
+#     theme(legend.position = "none") +
+#     theme(axis.title = element_text( size=8),
+#           rect = element_rect(fill = "transparent"),
+#           plot.background = element_rect(colour = "transparent") 
+#           )
+# )
+# 
+# p1 + annotation_custom(grob = inset_plot, xmin = 0, xmax = 0.3, ymin = 0.45, ymax = 0.63)
+# 
+# # Another example - ldmc vs. sla
+# 
+# # Generate plot showing overall, species, and individual regressions
+# p1 = ggplot(traits_chem_final, aes(x=ldmc, y=sla_cm2_g, color=taxon)) +
+#   #geom_smooth(method="lm") + 
+#   #geom_smooth(method="lm", aes(color=NULL)) +
+#   my_theme +
+#   scale_color_manual(values = pal_lm) +
+#   #ylim(0,0.625) +
+#   geom_point(size=0.9) +
+#   geom_smooth(method="lm", se=F,lwd=0.4, color="grey80", aes(group=ind_uid_new)) +
+#   geom_smooth(method="lm", se=F, lwd=0.8, aes(color=taxon)) +
+#   geom_smooth(method="lm", se=F, color="black", lty=2) #+
+# #theme(legend.position = "none")
+# 
+# # Make inset plot showing distribution of slopes for individuals
+# trait.lm.list = nlme::lmList(sla_cm2_g ~ ldmc | ind_uid_new, data = traits_chem_final, na.action = na.exclude)
+# model_coef = subset(coef(trait.lm.list), !is.na(ldmc))
+# 
+# z = lm(sla_cm2_g ~ ldmc, traits_chem_final)
+# species.lm.list = nlme::lmList(sla_cm2_g ~ ldmc | taxon, data = traits_chem_final, na.action = na.exclude)
+# species.slopes = data.frame(coef(species.lm.list))
+# species.slopes$taxon = rownames(species.slopes)
+# 
+# inset_plot = ggplotGrob(
+#   ggplot(data = model_coef, aes(x = ldmc)) + 
+#     geom_density() + 
+#     theme_classic() +
+#     geom_vline(xintercept = 0, lty = 3) +
+#     geom_vline(xintercept = coef(z)[2], lty = 2) +
+#     geom_vline(data = species.slopes, aes(xintercept = ldmc, color=taxon)) +
+#     xlim(c(-1200,1200)) +
+#     xlab("Slope") +
+#     #ylim(c(0,22)) +
+#     scale_color_manual(values = pal_lm) +
+#     theme(legend.position = "none") +
+#     theme(axis.title = element_text( size=8),
+#           rect = element_rect(fill = "transparent"),
+#           plot.background = element_rect(colour = "transparent") 
+#     )
+# )
+# 
+# p1 + annotation_custom(grob = inset_plot, xmin = 0.38, xmax = 0.65, ymin = 300, ymax = 450)
 
 
 #
@@ -140,12 +321,21 @@ ggplot(traits_data_cut, aes(x = elevation, y = traitCV, color = taxon)) +
 
 # Broken out by trait
 ggplot(traits_data_cut, aes(x = elevation, y = traitCV, color = trait_name)) +
-  geom_point() +
+  geom_jitter(width = 20) +
   geom_smooth(method = "lm") +
-  my_theme #+
+  my_theme +
+  ylim(0,0.6)#+
   #theme(legend.position = "none")
 
 
+
+# Attempt to plot both trait and cv trait together?
+ggplot(subset(traits, trait == "sla_cm2_g"), aes(x = elevation, y = value)) +
+  geom_jitter(width = 20) +
+  geom_smooth(method = "lm") +
+  geom_smooth(method = "lm", data = subset(traits_data_cut, trait_name == "sla_cm2_g"), aes(x = elevation, y = traitCV), lty = 2, color = "black")
+  my_theme #+
+  #ylim(0,0.6)#+
 
 #
 #
