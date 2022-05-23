@@ -155,7 +155,7 @@ taxon.lm <- lm(values ~ 0 + taxon, data = plot_df) # fit isn't great, but I've s
 taxon.results <- car::Anova(taxon.lm, type = 2)
 taxon.r2 <- summary(taxon.lm)$adj.r.squared
 
-taxon.posthoc.stats <- get_posthoc_stats(model = taxon.lm, group_var = 'taxon')
+taxon.posthoc.stats <- get_posthoc_stats(model = taxon.lm, group_var = 'taxon') # This needs to be trimmed down to only comparisons of taxon WITHIN a functional group
 taxon.posthoc.letters <- get_letters(model = taxon.lm, group_var = 'taxon')
 
 fg.comps <- list(c("Forb", "Graminoid"), c("Graminoid", "Woody"), c("Forb", "Woody"))
@@ -173,7 +173,8 @@ taxon.boxplot <- ggplot(plot_df, aes(y = values, x = functional_group, fill = ta
 	stat_compare_means(comparisons = fg.comps, method = 't.test', label = 'p.signif') +
 	stat_compare_means(aes(group = taxon), label = 'p.signif', label.y = c(5, 9, 7.5)) +
 	my_theme +
-	ylab('Hypervolume Size') + xlab('Functional Group') + labs(fill = 'Species')
+	ylab('Hypervolume Size') + xlab('Functional Group') + labs(fill = 'Species') +
+	facet_wrap(~site)
 print(taxon.boxplot)
 
 # Functional group analysis and boxplot
@@ -193,10 +194,11 @@ fg.boxplot <- ggplot(plot_df, aes(y = values, x = functional_group, fill = funct
 	# fun = max, 
 	# vjust = -1 
 	# ) +
-  stat_compare_means(comparisons = fg.comps, method = 't.test', label = 'p.signif') +
+  #stat_compare_means(comparisons = fg.comps, method = 't.test', label = 'p.signif') +
   my_theme +
   theme(legend.position = 'none') +
-  ylab('Hypervolume Size') + xlab('Functional Group')
+  ylab('Hypervolume Size') + xlab('Functional Group') +
+  facet_wrap(~site)
 print(fg.boxplot)
 
 # Elevation analysis and scatterplot
@@ -274,3 +276,40 @@ plot_df <- data.frame(Area = c("Forb", "Graminoid", "Woody",
 
 message("#############################################")
 print("We now need to run some simple tests like Mann-Whitney U to assess significance of difference in volume size")
+
+
+# Linear model
+fg <- traits_wide %>%
+		mutate(taxon = str_replace(taxon, ' ', '.')) %>%
+		distinct(taxon, functional_group, family)
+		
+el.values <- traits_wide %>%
+				group_by(site) %>%
+				summarise(elevation = mean(elevation))
+				
+temp <- Vols_df %>%
+			separate(ID, c('site', 'plot_id', 'individual_nr', 'taxon'),  sep = '_') %>%
+			mutate(taxon = str_replace(taxon, ' ', '.'),
+				plot_id = factor(plot_id),
+				individual_nr = as.numeric(individual_nr)
+			   	) %>%
+			left_join(fg, by = 'taxon') %>%
+			left_join(el.values, by = 'site') %>%
+			na.omit # THIS WILL REMOVE THE OUTLIER AT INDEX = 102
+temp$site %<>% factor(levels = c('WAY', 'ACJ', 'TRE'))
+
+# Add elevation instead of site
+# THESE ARE NOT THE FINAL MODELS as of May 19, 2022
+hv.taxon.model <- lmerTest::lmer(values ~ 0 + scale(elevation)*taxon + (1|site/plot_id), data = temp)
+Anova(hv.taxon.model, type = 3)
+hv.fg.model <- lmerTest::lmer(values ~ 0 + scale(elevation)*functional_group + (1|site/plot_id), data = temp)
+Anova(hv.fg.model, type = 3)
+
+
+taxon.boxplot <- ggplot(plot_df, aes(y = values, x = elevation, color = taxon)) +
+	geom_jitter() + 
+	geom_smooth(method = 'lm', formula = y~x + I(x^2), se = F) +
+	scale_color_manual(values = pal_lm) +
+	my_theme +
+	ylab('Hypervolume Size') + xlab('Elevation (MASL)') + labs(fill = 'Species')
+print(taxon.boxplot)
