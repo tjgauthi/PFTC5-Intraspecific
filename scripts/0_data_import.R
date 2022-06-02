@@ -79,7 +79,7 @@ rm('traits_raw')
 
 #removing obsolete columns after filtering
 traits<-traits %>% 
-  select (-c(year,season,month,treatment,burn_year,latitude,longitude,course))
+  dplyr::select (-c(year,season,month,treatment,burn_year,latitude,longitude,course))
 
 #Transform from long to wide format
 traits_wide<-traits %>%
