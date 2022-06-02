@@ -22,6 +22,7 @@ package_vec <- c(
   "car",
   "multcomp",
   "ggpubr"
+  "emmeans"
 )
 sapply(package_vec, install.load.package)
 
@@ -274,9 +275,6 @@ plot_df <- data.frame(Area = c("Forb", "Graminoid", "Woody",
 # myV3 <- createVennObj(nSets = nrow(plot_df), sSizes = plot_df$Value)
 # myV3 <- plotVenn(nVennObj = myV3, nCycles = 10000, outFile = "test.png")
 
-message("#############################################")
-print("We now need to run some simple tests like Mann-Whitney U to assess significance of difference in volume size")
-
 
 # Linear model
 fg <- traits_wide %>%
@@ -301,15 +299,72 @@ temp$site %<>% factor(levels = c('WAY', 'ACJ', 'TRE'))
 # Add elevation instead of site
 # THESE ARE NOT THE FINAL MODELS as of May 19, 2022
 hv.taxon.model <- lmerTest::lmer(values ~ 0 + scale(elevation)*taxon + (1|site/plot_id), data = temp)
-Anova(hv.taxon.model, type = 3)
+car::Anova(hv.taxon.model, type = 3)
 hv.fg.model <- lmerTest::lmer(values ~ 0 + scale(elevation)*functional_group + (1|site/plot_id), data = temp)
-Anova(hv.fg.model, type = 3)
+car::Anova(hv.fg.model, type = 3)
+
+taxon.comparisons <- emmeans(hv.taxon.model, list(pairwise ~ taxon), adjust = "tukey")
+
+# Plots
+plot_df <- data.frame(sp = c(Grouping_df$taxon[Grouping_df$functional_group == "Forb"], "Overlap",
+                             Grouping_df$taxon[Grouping_df$functional_group == "Graminoid"], "Overlap",
+                             Grouping_df$taxon[Grouping_df$functional_group == "Woody"], "Overlap"),
+                      fg = rep(c("Forb", "Graminoid", "Woody"), each = 3),
+                      value = as.numeric(
+                        c(taxon_vols[Grouping_df$taxon[Grouping_df$functional_group == "Forb"]],
+                          FUN.Overlap(data = taxon_hv,
+                                      names = Grouping_df$taxon[Grouping_df$functional_group == "Forb"]),
+                          taxon_vols[Grouping_df$taxon[Grouping_df$functional_group == "Graminoid"]],
+                          FUN.Overlap(data = taxon_hv,
+                                      names = Grouping_df$taxon[Grouping_df$functional_group == "Graminoid"]),
+                          taxon_vols[Grouping_df$taxon[Grouping_df$functional_group == "Woody"]],
+                          FUN.Overlap(data = taxon_hv,
+                                      names = Grouping_df$taxon[Grouping_df$functional_group == "Woody"]))
+                      ),
+                      sp2 = rep(c("sp1", "sp2", "Overlap"), 3)
+)
+plot_df$value[1:2] <- plot_df$value[1:2]-plot_df$value[3]/2
+plot_df$value[4:5] <- plot_df$value[4:5]-plot_df$value[6]/2
+plot_df$value[7:8] <- plot_df$value[7:8]-plot_df$value[9]/2
 
 
-taxon.boxplot <- ggplot(plot_df, aes(y = values, x = elevation, color = taxon)) +
-	geom_jitter() + 
+plot_df$sp2 <- as.factor(plot_df$sp2)
+plot_df$sp2 <- relevel(plot_df$sp2, 'sp2')
+plot$site %<>% factor(levels = c('WAY', 'ACJ', 'TRE'))
+
+taxon.comps <- list(c("Gaultheria glomerata", "Halenia umbellata"), c("Gaultheria glomerata", "Lachemilla orbiculata"), c("Gaultheria glomerata", "Paspalum bonplandianum"), c("Gaultheria glomerata", "Rhynchospora macrochaeta"), c("Gaultheria glomerata", "Vaccinium floribundum"),
+					c("Halenia umbellata", "Lachemilla orbiculata"), c("Halenia umbellata", "Paspalum bonplandianum"), c("Halenia umbellata", "Rhynchospora macrochaeta"), c("Halenia umbellata", "Vaccinium floribundum"),
+					c("Lachemilla orbiculata", "Paspalum bonplandianum"), c("Lachemilla orbiculata", "Rhynchospora macrochaeta"), c("Lachemilla orbiculata", "Vaccinium floribundum"),
+					c("Paspalum bonplandianum", "Rhynchospora macrochaeta"), c("Paspalum bonplandianum", "Vaccinium floribundum"),
+					c("Rhynchospora macrochaeta", "Vaccinium floribundum")
+					)
+
+taxon.boxplot1 <- ggplot(plot_df, aes(y = values, x = taxon, fill = taxon)) +
+	geom_boxplot() + 
+	scale_fill_manual(values = pal_lm) +
+	stat_compare_means(comparisons = taxon.comps, method = 't.test', label = 'p.signif') +
+	my_theme +
+	ylab('Hypervolume Size') + xlab('Taxon') + labs(fill = 'Species') +
+	facet_wrap(~site)
+taxon.boxplot1
+
+fg.comps <- list(c("Forb", "Graminoid"), c("Graminoid", "Woody"), c("Forb", "Woody"))
+taxon.boxplot2 <- ggplot(plot_df, aes(y = values, x = functional_group, fill = taxon)) +
+	geom_boxplot() + 
+	scale_fill_manual(values = pal_lm) +
+	stat_compare_means(comparisons = fg.comps, method = 't.test', label = 'p.signif') +
+	stat_compare_means(aes(group = taxon), label = 'p.signif', label.y = c(5, 9, 7.5)) +
+	my_theme +
+	ylab('Hypervolume Size') + xlab('Functional Group') + labs(fill = 'Species') +
+	facet_wrap(~site)
+taxon.boxplot2
+
+
+
+taxon.scatterplot <- ggplot(plot_df, aes(y = values, x = elevation, color = taxon)) +
+	geom_point() + 
 	geom_smooth(method = 'lm', formula = y~x + I(x^2), se = F) +
 	scale_color_manual(values = pal_lm) +
 	my_theme +
 	ylab('Hypervolume Size') + xlab('Elevation (MASL)') + labs(fill = 'Species')
-print(taxon.boxplot)
+print(taxon.scatterplot)
