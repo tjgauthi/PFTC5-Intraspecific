@@ -38,7 +38,7 @@ unique(data$functional_group)
 unique(data$trait)
 
 
-### PCA 
+### PCA analysis -------------------------------------------------------------------
 df1 <- data %>% 
   dplyr::select(site,id:value,elevation,plot_id) %>% 
   filter(!id %in% c("CXX4125", "BDN3235")) %>% # cut off two outliers 
@@ -57,13 +57,10 @@ str(pca_out)
 pca_out$rotation #look at laodings 
 
 
-### Plot PCA ggplot2
-scores <- as.data.frame(pca_out$x)## saco los scores 
-#uno el df:scores a pca.com
-scores.1 <- cbind(scores,df1)
-
-#saco las flechas
-pca.loadings <- data.frame(Variables = rownames(pca_out$rotation), pca_out$rotation)
+# Plot PCA ggplot2
+scores <- as.data.frame(pca_out$x)## getting the scores 
+scores.1 <- cbind(scores, df1)
+pca.loadings <- data.frame(Variables = rownames(pca_out$rotation), pca_out$rotation) # drawing the arrows
 
 
 # Plot taking taxon into account
@@ -111,7 +108,7 @@ s+guides(color=guide_legend(title="Sites"))
 # Combine SITE and TAXON in the same graph 
 
 
-#RDA analysis 
+### RDA analysis ---------------------------------------------------------------------
 # to see if there are significant differences in the factor 
 
 RDA_out <- rda(df1[,c(7:12)]~scale(elevation) * taxon, center = TRUE, scale = TRUE, data=df1)
