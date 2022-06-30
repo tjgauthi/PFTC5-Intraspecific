@@ -57,13 +57,13 @@ str(pca_out)
 pca_out$rotation #look at laodings 
 
 
-# Plot PCA ggplot2
+# Plot PCA with ggplot2
 scores <- as.data.frame(pca_out$x)## getting the scores 
 scores.1 <- cbind(scores, df1)
 pca.loadings <- data.frame(Variables = rownames(pca_out$rotation), pca_out$rotation) # drawing the arrows
 
 
-# Plot taking taxon into account
+# Plot taking TAXON into account
 p <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color=taxon)) + 
   geom_point(size=2) + 
   scale_fill_hue(l=40) + 
@@ -84,7 +84,7 @@ p <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color=taxon)) +
 p+guides(color=guide_legend(title="Plant species"))
 
 
-# Plot taking sites into account
+# Plot taking SITES into account
 s <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color=site)) + 
   geom_point(size=2) + 
   scale_fill_hue(l=40) + 
@@ -105,25 +105,49 @@ s <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color=site)) +
 s+guides(color=guide_legend(title="Sites"))
 
 
-# Combine SITE and TAXON in the same graph 
-#* need to solve color and legend 
-c <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color= site)) +
-  stat_ellipse(data = scores.1, aes(x = PC1, y = PC2, color=taxon),  alpha = 0.5) +
+# Combine SITES and TAXON in the same graph 
+#PLOT 1
+c <- ggplot(scores.1, aes(x = PC1, y = PC2, color=taxon, shape=site)) + 
+  geom_point(stat="identity", position=position_dodge(), size=2)+ 
+  scale_fill_hue(l=40) + 
   coord_fixed(ratio=1, xlim=range(scores$PC1), 
               ylim=range(scores$PC2))+
   geom_vline(xintercept = 0)+
-  geom_hline(yintercept = 0)+theme_classic()+
+  geom_hline(yintercept = 0)+
+  theme_classic()+
   xlab("PC 1 (49.4%)")+
   ylab("PC 2 (31.4%)")+
   geom_segment(data = pca.loadings, aes(x = 0, y = 0, xend = (PC1*3.5),
                                         yend = (PC2*2)), arrow = arrow(length = unit(1/2, "picas")),
-               color = "black") +
-  geom_point(size = 2, alpha = 0.5) +
+               inherit.aes = FALSE, color = "black") +
+  geom_point(size = 1.5, alpha = 0.7) +
   annotate("text", x = (pca.loadings$PC1*3.5), y = (pca.loadings$PC2*2),
-           label = c("Height","Dry mass","leaf area","SLA","LDMC","Leaf thickness"))+
-  theme(legend.position="right")+
-  scale_color_brewer(palette="Paired")
-c + guides(color=guide_legend(title="Plant species")) 
+           label = c("H","DM","LA","SLA","LDMC","LT"),size=4,face="bold")+
+  scale_color_brewer(palette="Paired")+scale_shape_manual(values= c(15, 16, 17))
+c+guides(color=guide_legend(title="Plant species", order=2,title.position = "top",legend.title.align = 0),shape=guide_legend("Sites",order=1,title.position = "top",legend.title.align = 0))+
+  theme(legend.position="bottom",legend.box = "vertical",legend.title = element_text(size=8,  face="bold"), 
+        legend.text = element_text(size=6.5))
+
+#PLOT2 - with ellipses 
+#* need to solve color and legend 
+
+# c <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color= site)) +
+#   stat_ellipse(data = scores.1, aes(x = PC1, y = PC2, color=taxon),  alpha = 0.5) +
+#   coord_fixed(ratio=1, xlim=range(scores$PC1), 
+#               ylim=range(scores$PC2))+
+#   geom_vline(xintercept = 0)+
+#   geom_hline(yintercept = 0)+theme_classic()+
+#   xlab("PC 1 (49.4%)")+
+#   ylab("PC 2 (31.4%)")+
+#   geom_segment(data = pca.loadings, aes(x = 0, y = 0, xend = (PC1*3.5),
+#                                         yend = (PC2*2)), arrow = arrow(length = unit(1/2, "picas")),
+#                color = "black") +
+#   geom_point(size = 2, alpha = 0.5) +
+#   annotate("text", x = (pca.loadings$PC1*3.5), y = (pca.loadings$PC2*2),
+#            label = c("Height","Dry mass","leaf area","SLA","LDMC","Leaf thickness"))+
+#   theme(legend.position="right")+
+#   scale_color_brewer(palette="Paired")
+# c + guides(color=guide_legend(title="Plant species")) 
 # stat_ellipse(data = scores.1, aes(x = PC1, y = PC2, color=taxon), show.legend = TRUE) +
 # scale_color_brewer(palette = "Greens")
 
