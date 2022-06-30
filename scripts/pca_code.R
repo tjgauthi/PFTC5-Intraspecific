@@ -106,7 +106,26 @@ s+guides(color=guide_legend(title="Sites"))
 
 
 # Combine SITE and TAXON in the same graph 
-
+#* need to solve color and legend 
+c <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color= site)) +
+  stat_ellipse(data = scores.1, aes(x = PC1, y = PC2, color=taxon),  alpha = 0.5) +
+  coord_fixed(ratio=1, xlim=range(scores$PC1), 
+              ylim=range(scores$PC2))+
+  geom_vline(xintercept = 0)+
+  geom_hline(yintercept = 0)+theme_classic()+
+  xlab("PC 1 (49.4%)")+
+  ylab("PC 2 (31.4%)")+
+  geom_segment(data = pca.loadings, aes(x = 0, y = 0, xend = (PC1*3.5),
+                                        yend = (PC2*2)), arrow = arrow(length = unit(1/2, "picas")),
+               color = "black") +
+  geom_point(size = 2, alpha = 0.5) +
+  annotate("text", x = (pca.loadings$PC1*3.5), y = (pca.loadings$PC2*2),
+           label = c("Height","Dry mass","leaf area","SLA","LDMC","Leaf thickness"))+
+  theme(legend.position="right")+
+  scale_color_brewer(palette="Paired")
+c + guides(color=guide_legend(title="Plant species")) 
+# stat_ellipse(data = scores.1, aes(x = PC1, y = PC2, color=taxon), show.legend = TRUE) +
+# scale_color_brewer(palette = "Greens")
 
 ### RDA analysis ---------------------------------------------------------------------
 # to see if there are significant differences in the factor 
