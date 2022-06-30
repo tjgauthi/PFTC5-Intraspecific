@@ -1,6 +1,6 @@
 #### Data analysis - Ordination ####
-
-## Authors: Fernanda, Elisa, Korina, Augustina, Fiorella 
+## Authors: Fernanda, Elisa, Korina
+# Others: Augustina, Fiorella 
 
 #### Load libraries ####
 library(dplyr)
@@ -47,7 +47,7 @@ df1 <- data %>%
 
 df1 <- na.omit(df1)
 
-#create a new DF for pca analisys
+# create a new DF for pca analisys
 pca_out <- prcomp(df1[,c(7:12)], center = TRUE, scale = TRUE)
 
 
@@ -66,8 +66,9 @@ scores.1 <- cbind(scores,df1)
 pca.loadings <- data.frame(Variables = rownames(pca_out$rotation), pca_out$rotation)
 
 
-p <- ggplot(scores.1, aes(x = PC1, y = PC2, color=taxon, shape=site, group=interaction("taxon","site"))) + 
-  geom_point(stat="identity", position=position_dodge(), size=2)+ 
+# Plot taking taxon into account
+p <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color=taxon)) + 
+  geom_point(size=2) + 
   scale_fill_hue(l=40) + 
   coord_fixed(ratio=1, xlim=range(scores$PC1), 
               ylim=range(scores$PC2))+
@@ -75,28 +76,18 @@ p <- ggplot(scores.1, aes(x = PC1, y = PC2, color=taxon, shape=site, group=inter
   geom_hline(yintercept = 0)+theme_classic()+
   xlab("PC 1 (49.4%)")+
   ylab("PC 2 (31.4%)")+
-  # geom_segment(data = pca.loadings, aes(x = 0, y = 0, xend = (PC1*3.5),
-  #                                       yend = (PC2*2)), arrow = arrow(length = unit(1/2, "picas")),
-  #              color = "black") +
   geom_segment(data = pca.loadings, aes(x = 0, y = 0, xend = (PC1*3.5),
-                                        yend = (PC2*2), colour = "taxon")) 
-
-
-
-
-geom_point(size = 3) +
+                                        yend = (PC2*2)), arrow = arrow(length = unit(1/2, "picas")),
+               color = "black") +
+  geom_point(size = 3) +
   annotate("text", x = (pca.loadings$PC1*3.5), y = (pca.loadings$PC2*2),
            label = c("Height","Dry mass","leaf area","SLA","LDMC","Leaf thickness"))+
   theme(legend.position="right")+
-  scale_color_brewer(palette="Paired")+scale_shape_manual(values= c(15, 16, 17))
-p+guides(color=guide_legend(title="Plant species"),shape=guide_legend("Sites"))
+  scale_color_brewer(palette="Paired")
+p+guides(color=guide_legend(title="Plant species"))
 
 
-# Result of PCA: 
-
-#taking sites into account
-
-
+# Plot taking sites into account
 s <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color=site)) + 
   geom_point(size=2) + 
   scale_fill_hue(l=40) + 
@@ -116,6 +107,8 @@ s <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color=site)) +
   scale_color_brewer(palette="Paired")
 s+guides(color=guide_legend(title="Sites"))
 
+
+# Combine SITE and TAXON in the same graph 
 
 
 #RDA analysis 
