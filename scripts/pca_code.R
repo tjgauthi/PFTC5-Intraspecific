@@ -6,19 +6,11 @@
 library(dplyr)
 library(ggplot2)
 library(devtools)
-#install_github("vqv/ggbiplot")
-library(ggbiplot)
 library(readr)
 library(factoextra)
-
-#* TO DO: 
-#* 1- try use ggplot2 intead of bbplot
-#* 2- plot sites PCA (maybe like ellipses?!) 
-#* 3 plot species (colored or similar)
-#* 
-#* PCA - use traits as  explanatory variables
-#* How traits values vary between different sites? 
-
+library(vegan)
+#install_github("vqv/ggbiplot")
+# library(ggbiplot)
 
 # upload data 
 data <- read_csv("data/raw/PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv")
@@ -32,7 +24,6 @@ data <- data %>%
            taxon %in% c("Halenia umbellata","Lachemilla orbiculata","Paspalum bonplandianum",
                         "Rhynchospora macrochaeta","Vaccinium floribundum","Gaultheria glomerata"))
 
-# should we log transform some of the traits?
 
 data$site <- factor(data$site)
 data$taxon <- factor(data$taxon)
@@ -47,51 +38,36 @@ unique(data$functional_group)
 unique(data$trait)
 
 
-### PCA - plot 1 
+### PCA 
 df1 <- data %>% 
-  dplyr::select(site,id:value) %>% 
+  dplyr::select(site,id:value,elevation,plot_id) %>% 
   filter(!id %in% c("CXX4125", "BDN3235")) %>% # cut off two outliers 
   tidyr::pivot_wider(names_from = trait, values_from = value) %>% 
   tibble::column_to_rownames("id") 
 
-df1=na.omit(df1)
-#create a new DF for pca analisys
+df1 <- na.omit(df1)
 
-# df1.trait <- factor(data$trait)
-pca_out <- prcomp(df1[,-c(1:4)], center = TRUE, scale = TRUE)
+#create a new DF for pca analisys
+pca_out <- prcomp(df1[,c(7:12)], center = TRUE, scale = TRUE)
+
 
 # pca_out <- prcomp(df1, center = TRUE, scale. = TRUE)
 summary(pca_out)
 str(pca_out)
 pca_out$rotation #look at laodings 
 
-ggbiplot(pca_out, choices = c(1, 2)) + theme_classic()
-# ggbiplot(pca_out, choices = c(3, 4)) + theme_classic()
 
-
-ggbiplot(
-  pca_out,
-  scale = 0,
-  choices = c(1, 2),
-  ellipse = TRUE,
-  # groups = df1.trait
-) + theme_classic()
-
-###PCA with ggplot2
-
-# Plot with GGPLOT
-
-scores <- as.data.frame(pca_out$x)## getting the scores  
+### Plot PCA ggplot2
+scores <- as.data.frame(pca_out$x)## saco los scores 
 #uno el df:scores a pca.com
-scores.1=cbind(scores,df1)
+scores.1 <- cbind(scores,df1)
 
-# drawing the arrows
+#saco las flechas
 pca.loadings <- data.frame(Variables = rownames(pca_out$rotation), pca_out$rotation)
 
 
-
-p <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color=taxon)) + 
-  geom_point(size=2) + 
+p <- ggplot(scores.1, aes(x = PC1, y = PC2, color=taxon, shape=site, group=interaction("taxon","site"))) + 
+  geom_point(stat="identity", position=position_dodge(), size=2)+ 
   scale_fill_hue(l=40) + 
   coord_fixed(ratio=1, xlim=range(scores$PC1), 
               ylim=range(scores$PC2))+
@@ -99,16 +75,24 @@ p <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color=taxon)) +
   geom_hline(yintercept = 0)+theme_classic()+
   xlab("PC 1 (49.4%)")+
   ylab("PC 2 (31.4%)")+
+  # geom_segment(data = pca.loadings, aes(x = 0, y = 0, xend = (PC1*3.5),
+  #                                       yend = (PC2*2)), arrow = arrow(length = unit(1/2, "picas")),
+  #              color = "black") +
   geom_segment(data = pca.loadings, aes(x = 0, y = 0, xend = (PC1*3.5),
-                                        yend = (PC2*2)), arrow = arrow(length = unit(1/2, "picas")),
-               color = "black") +
-  geom_point(size = 3) +
+                                        yend = (PC2*2), colour = "taxon")) 
+
+
+
+
+geom_point(size = 3) +
   annotate("text", x = (pca.loadings$PC1*3.5), y = (pca.loadings$PC2*2),
            label = c("Height","Dry mass","leaf area","SLA","LDMC","Leaf thickness"))+
   theme(legend.position="right")+
-  scale_color_brewer(palette="Paired")
-p+guides(color=guide_legend(title="Plant species"))
+  scale_color_brewer(palette="Paired")+scale_shape_manual(values= c(15, 16, 17))
+p+guides(color=guide_legend(title="Plant species"),shape=guide_legend("Sites"))
 
+
+# Result of PCA: 
 
 #taking sites into account
 
@@ -131,3 +115,68 @@ s <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color=site)) +
   theme(legend.position="right")+
   scale_color_brewer(palette="Paired")
 s+guides(color=guide_legend(title="Sites"))
+
+
+
+#RDA analysis 
+# to see if there are significant differences in the factor 
+
+RDA_out <- rda(df1[,c(7:12)]~scale(elevation) * taxon, center = TRUE, scale = TRUE, data=df1)
+
+summary(RDA_out)
+print(RDA_out)
+
+#We construct the models
+RDA_1<- rda(df1[,c(7:12)]~scale(elevation), center = TRUE, scale = TRUE, data=df1)
+RDA_2<- rda(df1[,c(7:12)]~taxon, center = TRUE, scale = TRUE, data=df1)
+RDA_3<- rda(df1[,c(7:12)]~scale(elevation) + taxon, center = TRUE, scale = TRUE, data=df1)
+RDA_4<- rda(df1[,c(7:12)]~scale(elevation) * taxon, center = TRUE, scale = TRUE, data=df1)
+
+#then we compare the models
+anova(RDA_1, RDA_3)
+anova(RDA_1, RDA_4)
+anova(RDA_3, RDA_4)
+
+anova(RDA_2, RDA_3)
+anova(RDA_2, RDA_4)
+anova(RDA_3, RDA_4)
+
+# when doing ANOVA the interaction between elevation and taxa
+# there is an interaction between elevation and factor 
+
+
+
+### NOT USED -----------------------------------------------------
+## Plot with ggbiplot
+# ggbiplot(pca_out, choices = c(1, 2)) + theme_classic()
+# # ggbiplot(pca_out, choices = c(3, 4)) + theme_classic()
+# 
+# 
+# ggbiplot(
+#   pca_out,
+#   scale = 0,
+#   choices = c(1, 2),
+#   ellipse = TRUE,
+#   # groups = df1.trait
+# ) + theme_classic()
+
+# 
+# # PCA - plot 2
+# df2 <- data %>% select(c(site, taxon, individual_nr, functional_group, value))
+# df2.trait <- factor(data$trait)
+# pca_out1 <- prcomp(df2, center = TRUE, scale. = TRUE)
+# summary(pca_out1)
+# 
+# str(pca_out1)
+# 
+# ggbiplot(pca_out1,choices=c(1,2))+ theme_classic()
+# 
+# 
+# ggbiplot(
+#   pca_out1,
+#   scale = 0,
+#   choices = c(1, 2),
+#   # ellipse = TRUE,
+#   groups = df1.trait
+# ) + theme_classic()
+
