@@ -165,6 +165,49 @@ plot_grid (VP_Plot + theme (legend.position = "none")+ labs(title = "functional 
            ncol = 2, #assigns the # of display columns
            rel_heights =c(1,0.3)) #assigns relative row height allowing us to make the graph larger and the legend smaller
 
+#### bootstrapping 95% CI for variance partitioning ####
+
+boot_output <- data.frame(NULL)
+
+for(i in unique(traits_log$trait)){
+  
+  b_output <- data.frame(NULL)
+      
+  dat <- traits_log %>% 
+      filter(trait ==i)
+  
+  #create randomly-sampled dataset
+  for(j in 1:500){
+    samp <- dat[sample(nrow(dat), replace = T, size = nrow(dat)*0.9),]
+  
+  #This code all comes from Julie Messier's web site
+  mod<-lmer(value~1+(1|functional_group/taxon/site/individual_nr), 
+             data=samp, 
+             na.action=na.omit)
+  variances<-c(unlist(lapply(VarCorr(mod),diag)), 
+                attr(VarCorr(mod),"sc")^2) #get variances
+  
+  var.comp<-variances/sum(variances)
+  
+  var.comp<-as.data.frame(t(var.comp)) #creates a dataframe from the values
+  colnames(var.comp) <- c("Between individuals within sites",
+                          "Between sites within taxon",
+                          "Between taxon within functional groups", 
+                          "Between functional groups",
+                          "Unexplained")
+  var.comp$rep <- j
+  var.comp$trait <- i
+  
+  b_output <- bind_rows(b_output, var.comp)
+  }
+  boot_output <- bind_rows(boot_output, b_output)
+}
+
+boot_summary <- boot_output %>% 
+  select(-rep) %>% 
+  pivot_longer(cols = -trait, names_to = "part", values_to = "vals") %>% 
+  group_by(trait, part) %>% 
+  summarize(lower = quantile(vals, probs = 0.025), upper = quantile(vals, probs = 0.975))
 
 #### look at variance partitioning for all species ----
 
