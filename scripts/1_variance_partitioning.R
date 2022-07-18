@@ -209,6 +209,12 @@ boot_summary <- boot_output %>%
   group_by(trait, part) %>% 
   summarize(lower = quantile(vals, probs = 0.025), upper = quantile(vals, probs = 0.975))
 
+varpart_real <- output2 %>% 
+  mutate(part = plyr::mapvalues(Scale, from = c("Unexplained", "individual_nr:(site:(taxon:functional_group)).(Intercept)", "site:(taxon:functional_group).(Intercept)","taxon:functional_group.(Intercept)","functional_group.(Intercept)"), to = c("Unexplained","Between individuals within sites","Between sites within taxon","Between taxon within functional groups","Between functional groups"))) %>% 
+  left_join(boot_summary) %>% 
+  mutate(lower = lower*100,
+         upper = upper*100)
+
 #### look at variance partitioning for all species ----
 
 #randomly subsample from the 6 species of interest from part 1. How should it be subsampled, though? 
