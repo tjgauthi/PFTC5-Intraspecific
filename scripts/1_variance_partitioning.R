@@ -5,13 +5,14 @@
 source(here::here(path = "scripts/0_data_import.R"))
 
 
-####Setup ----
+#### Setup ----
 
 #load in packages
 library(tidyverse)
 library(lme4)
 library(reshape2)
 library(cowplot) #to arrange multiple plots in a figure
+library(gcookbook)
 
 #sets a theme
 blank_theme <- theme(panel.grid.major = element_blank(), #removes major axis grid lines
@@ -21,6 +22,7 @@ blank_theme <- theme(panel.grid.major = element_blank(), #removes major axis gri
                      axis.line = element_line(colour = "black"), #makes axis lines black
                      text = element_text (size = 15), #sets all text size to 20 
                      axis.text = element_text(size = 12)) #sets axis text to size 15  
+
 
 
 #### Data Organization ####
@@ -41,7 +43,7 @@ traits %>%
 traits_log <- traits %>% 
   mutate(value = log(value))
 
-####Model Structure 1 - functional group/taxon/individual + 1|site ####
+#### Model Structure 1 - functional group/taxon/individual + 1|site ####
 output <- data.frame(NULL)
 for(i in unique(traits_log$trait)){
   #This code all comes from Julie Messier's web site
@@ -133,12 +135,12 @@ for(i in unique(traits_log$trait)){
 VP_Plot2<-ggplot(output2, aes(x=trait, y=value))+
   geom_col(aes(fill=Scale))+
   geom_text(aes(y=labypos, label=round(value,digits = 0)),colour="white", size = 5)+
-  #scale_fill_manual (values = scales_colours)+
-  scale_fill_discrete(labels = c("Within Individual + Unexplained", 
-                                 "Between individuals within sites",
-                                 "Between sites within taxon",
-                                 "Between taxon within functional groups", 
-                                 "Between functional groups"))+
+  scale_fill_manual (values = c("#358420","#53a13e","#213c67","#38537f","#899cbb"),
+                     labels = c("Within Individual + Unexplained",
+                                "Between individuals within sites",
+                                "Between sites within taxon",
+                                "Between taxon within functional groups",
+                                "Between functional groups"))+
   ylab("Proportion of Variance (%)")+
   xlab("")+
   blank_theme+
@@ -146,8 +148,56 @@ VP_Plot2<-ggplot(output2, aes(x=trait, y=value))+
   scale_y_continuous(expand=c(0,0),limits=c(0,100.1))+#this forces the graph to actually start at 0% and end at 100%
   scale_x_discrete(labels=function(x){sub("\\s", "\n", x)}) +
   theme(axis.text.x = element_text(angle = 330, hjust = 0))+
-  labs(title = "Focal Species v2")
+  labs(title = "functional group/taxon/site/individual")
 VP_Plot2
+
+#### Using model 2 to create a graph showing intra  vs interspecific variability ####
+
+#Reclassifying the scales to be just Intraspecific and Interspecific
+output2.1 <-output2 #creates output 2.1 based on model 2
+output2.1[,"intrainter"]<-NA #adds a new column "intrainter
+output2.1$intrainter <- ifelse (output2$Scale == "Unexplained"|
+                              output2$Scale == "individual_nr:(site:(taxon:functional_group)).(Intercept)",
+                              "Intraspecific","Interspecific")
+
+#aggregates the variance scales into intraspecific or interspecific
+output2.1<-aggregate(output2.1$value, by=list(trait=output2.1$trait,intrainter=output2.1$intrainter), FUN=sum)
+output2.1 <- rename (output2.1,"value" = "x") #renames the output "x" to "value"
+
+#this sets the y position of the graph labels
+output2.1 <-output2.1 %>% 
+  mutate(intrainter = factor(intrainter, levels = c("Intraspecific","Interspecific"))) %>% 
+  arrange(trait, intrainter)%>%
+  group_by(trait)%>%
+  mutate(label_y=100-(cumsum(value)-0.5*value))
+
+#intraspecific vs intraspecific variation plot
+VP_Plot_IntraInter<-ggplot(output2.1, aes(x=trait, y=value))+
+  geom_col(aes(fill=intrainter))+
+  geom_text(aes(y=label_y,label=round(value,digits = 0)),colour="white", size = 5)+
+  scale_fill_manual (values = c("#195e07","#0c244a"))+
+  ylab("Proportion of Variance (%)")+
+  xlab("")+
+  blank_theme+
+  labs(fill = "intrainter")+
+  scale_y_continuous(expand=c(0,0),limits=c(0,100.1))+#this forces the graph to actually start at 0% and end at 100%
+  scale_x_discrete(labels=function(x){sub("\\s", "\n", x)}) +
+  theme(axis.text.x = element_text(angle = 330, hjust = 0))+
+  labs(title = "Intraspecific vs. Interspecific Variation")
+VP_Plot_IntraInter
+
+plot_grid (VP_Plot_IntraInter + theme (legend.position = "none"),
+           VP_Plot2+ theme (legend.position = "none"),
+           get_legend(VP_Plot_IntraInter + 
+                        theme(legend.direction = "vertical", 
+                              legend.justification = "center",
+                              legend.title = element_blank())),
+           get_legend(VP_Plot2 + 
+                        theme(legend.direction = "vertical", 
+                              legend.justification = "center",
+                              legend.title = element_blank())),
+           ncol = 2, #assigns the # of display columns
+           rel_heights =c(1,0.3)) #assigns relative row height allowing us to make the graph larger and the legend smaller
 
 #### Comparing Model Structure 1 and 2 ####
 
