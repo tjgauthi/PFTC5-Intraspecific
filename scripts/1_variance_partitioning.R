@@ -135,7 +135,7 @@ for(i in unique(traits_log$trait)){
 VP_Plot2<-ggplot(output2, aes(x=trait, y=value))+
   geom_col(aes(fill=Scale))+
   geom_text(aes(y=labypos, label=round(value,digits = 0)),colour="white", size = 5)+
-  scale_fill_manual (values = c("#358420","#53a13e","#213c67","#38537f","#899cbb"),
+  scale_fill_manual (values = c("#358420","#53a13e","#abdf9e","#213c67","#38537f"),
                      labels = c("Within Individual + Unexplained",
                                 "Between individuals within sites",
                                 "Between sites within taxon",
@@ -157,7 +157,8 @@ VP_Plot2
 output2.1 <-output2 #creates output 2.1 based on model 2
 output2.1[,"intrainter"]<-NA #adds a new column "intrainter
 output2.1$intrainter <- ifelse (output2$Scale == "Unexplained"|
-                              output2$Scale == "individual_nr:(site:(taxon:functional_group)).(Intercept)",
+                              output2$Scale == "individual_nr:(site:(taxon:functional_group)).(Intercept)"|
+                                output2$Scale == "site:(taxon:functional_group).(Intercept)",
                               "Intraspecific","Interspecific")
 
 #aggregates the variance scales into intraspecific or interspecific
