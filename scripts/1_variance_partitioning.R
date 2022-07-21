@@ -43,7 +43,119 @@ traits %>%
 traits_log <- traits %>% 
   mutate(value = log(value))
 
-#### Model Structure 1 - functional group/taxon/individual + 1|site ####
+#### Model Structure 2 - functional group/taxon/site/individual####
+
+output2 <- data.frame(NULL)
+for(i in unique(traits_log$trait)){
+  #This code all comes from Julie Messier's web site
+  mod2<-lmer(value~1+(1|functional_group/taxon/site/individual_nr), 
+            data=traits_log %>% filter(trait == i), 
+            na.action=na.omit)
+  variances2<-c(unlist(lapply(VarCorr(mod2),diag)), 
+               attr(VarCorr(mod2),"sc")^2) #get variances
+  
+  var.comp2<-variances2/sum(variances2)
+  
+  var.comp2<-as.data.frame(var.comp2) #creates a dataframe from the values
+  var.comp2<-cbind(rownames(var.comp2),data.frame(var.comp2,row.names=NULL)) #changes row names into a column
+  var.comp2<-melt(var.comp2,value.name="value") #makes var.comp into a variable
+  names(var.comp2)[1]<-"Scale" #changes the first column name to "scale"
+  
+  var.comp2$value<-var.comp2$value *100 #changes values into % 
+  
+  var.comp2<- var.comp2 %>%
+    mutate(Scale = plyr::mapvalues(Scale, from = c(""), to = c("Unexplained"))) %>% 
+    mutate(Scale = factor(Scale, levels = c("Unexplained", "individual_nr:(site:(taxon:functional_group)).(Intercept)", "site:(taxon:functional_group).(Intercept)","taxon:functional_group.(Intercept)","functional_group.(Intercept)"))) %>% 
+    # group_by(variable)%>%
+    arrange(variable, Scale)%>%
+    mutate(labypos=100-(cumsum(value)-0.5*value)) %>%
+    #subset(value>1) %>% #this line removes variance partitioning less than 1% so that there are no zero labels
+    mutate(trait = i)
+  
+  output2 <- bind_rows(output2, var.comp2)
+} 
+
+#Colour palette for graph: https://paletton.com/#uid=54n140kjJo3hfJliyuOl7gxlT9k
+#Variance Partitioning Plot 2 
+VP_Plot2<-ggplot(output2, aes(x=trait, y=value))+
+  geom_col(aes(fill=Scale))+
+  geom_text(aes(y=labypos, label=round(value,digits = 1)),colour="white", size = 5)+
+  scale_fill_manual (values = c("#77293e","#ae435f","#f27092","#543a83","#37245a"),
+                     labels = c("Within Individual + Unexplained",
+                                "Between individuals within sites",
+                                "Between sites within taxon",
+                                "Between taxon within functional groups",
+                                "Between functional groups"))+
+  ylab("Proportion of Variance (%)")+
+  xlab("")+
+  blank_theme+
+  labs(fill = "Ecological Scale")+
+  scale_y_continuous(expand=c(0,0),limits=c(0,100.1))+#this forces the graph to actually start at 0% and end at 100%
+  scale_x_discrete(limits = c("wet_mass_g","dry_mass_g","ldmc", "leaf_area_cm2","sla_cm2_g","leaf_thickness_mm","plant_height_cm"),
+                   labels = c("wet_mass_g"="Wet Mass (g)", 
+                              "dry_mass_g"="Dry Mass (g)",
+                              "ldmc"="LDMC", 
+                              "leaf_area_cm2"="Leaf Area (cm^2)",
+                              "sla_cm2_g"="SLA (cm^2/g)", 
+                              "leaf_thickness_mm"="Leaf Thickness (mm)",
+                              "plant_height_cm"="Plant Height (cm)")) +
+  theme(axis.text.x = element_text(angle = 330, hjust = 0))+
+  labs(title = "functional group/taxon/site/individual")
+VP_Plot2
+
+#### bootstrapping 95% CI for variance partitioning ####
+
+boot_output <- data.frame(NULL)
+
+for(i in unique(traits_log$trait)){
+  
+  b_output <- data.frame(NULL)
+      
+  dat <- traits_log %>% 
+      filter(trait ==i)
+  
+  #create randomly-sampled dataset
+  for(j in 1:500){
+    samp <- dat[sample(nrow(dat), replace = T, size = nrow(dat)*0.9),]
+  
+  #This code all comes from Julie Messier's web site
+  mod<-lmer(value~1+(1|functional_group/taxon/site/individual_nr), 
+             data=samp, 
+             na.action=na.omit)
+  variances<-c(unlist(lapply(VarCorr(mod),diag)), 
+                attr(VarCorr(mod),"sc")^2) #get variances
+  
+  var.comp<-variances/sum(variances)
+  
+  var.comp<-as.data.frame(t(var.comp)) #creates a dataframe from the values
+  colnames(var.comp) <- c("Between individuals within sites",
+                          "Between sites within taxon",
+                          "Between taxon within functional groups", 
+                          "Between functional groups",
+                          "Unexplained")
+  var.comp$rep <- j
+  var.comp$trait <- i
+  
+  b_output <- bind_rows(b_output, var.comp)
+  }
+  boot_output <- bind_rows(boot_output, b_output)
+}
+
+boot_summary <- boot_output %>% 
+  select(-rep) %>% 
+  pivot_longer(cols = -trait, names_to = "part", values_to = "vals") %>% 
+  group_by(trait, part) %>% 
+  summarize(lower = quantile(vals, probs = 0.025), upper = quantile(vals, probs = 0.975))
+
+varpart_real <- output2 %>% 
+  mutate(part = plyr::mapvalues(Scale, from = c("Unexplained", "individual_nr:(site:(taxon:functional_group)).(Intercept)", "site:(taxon:functional_group).(Intercept)","taxon:functional_group.(Intercept)","functional_group.(Intercept)"), to = c("Unexplained","Between individuals within sites","Between sites within taxon","Between taxon within functional groups","Between functional groups"))) %>% 
+  left_join(boot_summary) %>% 
+  mutate(lower = lower*100,
+         upper = upper*100)
+
+
+
+#### ARCHIVE - Model Structure 1 - functional group/taxon/individual + 1|site ####
 output <- data.frame(NULL)
 for(i in unique(traits_log$trait)){
   #This code all comes from Julie Messier's web site
@@ -99,67 +211,32 @@ VP_Plot<-ggplot(output, aes(x=trait, y=value))+
   labs(title = "Focal Species")
 VP_Plot
 
-#### Model Structure 2 - functional group/taxon/site/individual####
 
-output2 <- data.frame(NULL)
-for(i in unique(traits_log$trait)){
-  #This code all comes from Julie Messier's web site
-  mod2<-lmer(value~1+(1|functional_group/taxon/site/individual_nr), 
-            data=traits_log %>% filter(trait == i), 
-            na.action=na.omit)
-  variances2<-c(unlist(lapply(VarCorr(mod2),diag)), 
-               attr(VarCorr(mod2),"sc")^2) #get variances
-  
-  var.comp2<-variances2/sum(variances2)
-  
-  var.comp2<-as.data.frame(var.comp2) #creates a dataframe from the values
-  var.comp2<-cbind(rownames(var.comp2),data.frame(var.comp2,row.names=NULL)) #changes row names into a column
-  var.comp2<-melt(var.comp2,value.name="value") #makes var.comp into a variable
-  names(var.comp2)[1]<-"Scale" #changes the first column name to "scale"
-  
-  var.comp2$value<-var.comp2$value *100 #changes values into % 
-  
-  var.comp2<- var.comp2 %>%
-    mutate(Scale = plyr::mapvalues(Scale, from = c(""), to = c("Unexplained"))) %>% 
-    mutate(Scale = factor(Scale, levels = c("Unexplained", "individual_nr:(site:(taxon:functional_group)).(Intercept)", "site:(taxon:functional_group).(Intercept)","taxon:functional_group.(Intercept)","functional_group.(Intercept)"))) %>% 
-    # group_by(variable)%>%
-    arrange(variable, Scale)%>%
-    mutate(labypos=100-(cumsum(value)-0.5*value)) %>%
-    #subset(value>1) %>% #this line removes variance partitioning less than 1% so that there are no zero labels
-    mutate(trait = i)
-  
-  output2 <- bind_rows(output2, var.comp2)
-}
+#### ARCHIVE - Comparing Model Structure 1 and 2 ####
 
-#Variance Partitioning Plot 2 
-VP_Plot2<-ggplot(output2, aes(x=trait, y=value))+
-  geom_col(aes(fill=Scale))+
-  geom_text(aes(y=labypos, label=round(value,digits = 0)),colour="white", size = 5)+
-  scale_fill_manual (values = c("#358420","#53a13e","#abdf9e","#213c67","#38537f"),
-                     labels = c("Within Individual + Unexplained",
-                                "Between individuals within sites",
-                                "Between sites within taxon",
-                                "Between taxon within functional groups",
-                                "Between functional groups"))+
-  ylab("Proportion of Variance (%)")+
-  xlab("")+
-  blank_theme+
-  labs(fill = "Ecological Scale")+
-  scale_y_continuous(expand=c(0,0),limits=c(0,100.1))+#this forces the graph to actually start at 0% and end at 100%
-  scale_x_discrete(labels=function(x){sub("\\s", "\n", x)}) +
-  theme(axis.text.x = element_text(angle = 330, hjust = 0))+
-  labs(title = "functional group/taxon/site/individual")
-VP_Plot2
+#this pulls the 2 Vp graphs with no legend, adds appropriate titles and adds legends separately to allow resizing of legend vs. graph
+plot_grid (VP_Plot + theme (legend.position = "none")+ labs(title = "functional group/taxon/individual + 1|site"),
+           VP_Plot2+ theme (legend.position = "none")+labs(title = "functional group/taxon/site/individual"),
+           get_legend(VP_Plot + 
+                        theme(legend.direction = "vertical", 
+                              legend.justification = "center",
+                              legend.title = element_blank())),
+           get_legend(VP_Plot2 + 
+                        theme(legend.direction = "vertical", 
+                              legend.justification = "center",
+                              legend.title = element_blank())),
+           ncol = 2, #assigns the # of display columns
+           rel_heights =c(1,0.3)) #assigns relative row height allowing us to make the graph larger and the legend smaller
 
-#### Using model 2 to create a graph showing intra  vs interspecific variability ####
+#### ARCHIVE - Using model 2 to create a graph showing intra  vs interspecific variability ####
 
 #Reclassifying the scales to be just Intraspecific and Interspecific
 output2.1 <-output2 #creates output 2.1 based on model 2
 output2.1[,"intrainter"]<-NA #adds a new column "intrainter
 output2.1$intrainter <- ifelse (output2$Scale == "Unexplained"|
-                              output2$Scale == "individual_nr:(site:(taxon:functional_group)).(Intercept)"|
-                                output2$Scale == "site:(taxon:functional_group).(Intercept)",
-                              "Intraspecific","Interspecific")
+                                  output2$Scale == "individual_nr:(site:(taxon:functional_group)).(Intercept)"|
+                                  output2$Scale == "site:(taxon:functional_group).(Intercept)",
+                                "Intraspecific","Interspecific")
 
 #aggregates the variance scales into intraspecific or interspecific
 output2.1<-aggregate(output2.1$value, by=list(trait=output2.1$trait,intrainter=output2.1$intrainter), FUN=sum)
@@ -200,73 +277,8 @@ plot_grid (VP_Plot_IntraInter + theme (legend.position = "none"),
            ncol = 2, #assigns the # of display columns
            rel_heights =c(1,0.3)) #assigns relative row height allowing us to make the graph larger and the legend smaller
 
-#### Comparing Model Structure 1 and 2 ####
 
-#this pulls the 2 Vp graphs with no legend, adds appropriate titles and adds legends separately to allow resizing of legend vs. graph
-plot_grid (VP_Plot + theme (legend.position = "none")+ labs(title = "functional group/taxon/individual + 1|site"),
-           VP_Plot2+ theme (legend.position = "none")+labs(title = "functional group/taxon/site/individual"),
-           get_legend(VP_Plot + 
-                        theme(legend.direction = "vertical", 
-                              legend.justification = "center",
-                              legend.title = element_blank())),
-           get_legend(VP_Plot2 + 
-                        theme(legend.direction = "vertical", 
-                              legend.justification = "center",
-                              legend.title = element_blank())),
-           ncol = 2, #assigns the # of display columns
-           rel_heights =c(1,0.3)) #assigns relative row height allowing us to make the graph larger and the legend smaller
-
-#### bootstrapping 95% CI for variance partitioning ####
-
-boot_output <- data.frame(NULL)
-
-for(i in unique(traits_log$trait)){
-  
-  b_output <- data.frame(NULL)
-      
-  dat <- traits_log %>% 
-      filter(trait ==i)
-  
-  #create randomly-sampled dataset
-  for(j in 1:500){
-    samp <- dat[sample(nrow(dat), replace = T, size = nrow(dat)*0.9),]
-  
-  #This code all comes from Julie Messier's web site
-  mod<-lmer(value~1+(1|functional_group/taxon/site/individual_nr), 
-             data=samp, 
-             na.action=na.omit)
-  variances<-c(unlist(lapply(VarCorr(mod),diag)), 
-                attr(VarCorr(mod),"sc")^2) #get variances
-  
-  var.comp<-variances/sum(variances)
-  
-  var.comp<-as.data.frame(t(var.comp)) #creates a dataframe from the values
-  colnames(var.comp) <- c("Between individuals within sites",
-                          "Between sites within taxon",
-                          "Between taxon within functional groups", 
-                          "Between functional groups",
-                          "Unexplained")
-  var.comp$rep <- j
-  var.comp$trait <- i
-  
-  b_output <- bind_rows(b_output, var.comp)
-  }
-  boot_output <- bind_rows(boot_output, b_output)
-}
-
-boot_summary <- boot_output %>% 
-  select(-rep) %>% 
-  pivot_longer(cols = -trait, names_to = "part", values_to = "vals") %>% 
-  group_by(trait, part) %>% 
-  summarize(lower = quantile(vals, probs = 0.025), upper = quantile(vals, probs = 0.975))
-
-varpart_real <- output2 %>% 
-  mutate(part = plyr::mapvalues(Scale, from = c("Unexplained", "individual_nr:(site:(taxon:functional_group)).(Intercept)", "site:(taxon:functional_group).(Intercept)","taxon:functional_group.(Intercept)","functional_group.(Intercept)"), to = c("Unexplained","Between individuals within sites","Between sites within taxon","Between taxon within functional groups","Between functional groups"))) %>% 
-  left_join(boot_summary) %>% 
-  mutate(lower = lower*100,
-         upper = upper*100)
-
-#### look at variance partitioning for all species ----
+#### ARCHIVE - look at variance partitioning for all species ----
 
 #randomly subsample from the 6 species of interest from part 1. How should it be subsampled, though? 
 
