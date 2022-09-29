@@ -48,8 +48,8 @@ traits_wide$ID <- paste(traits_wide$individual_uid, traits_wide$taxon, sep="_")
 # POOL ELEVATION WITHIN SITE. WAY: 3101; ACJ: 3468; TRE: 3715
 traits_df <- na.omit(traits_wide[ , c(-2:-4, -16:-18)])
 traits_df$elevation <- ifelse(traits_df$site == 'ACJ', 3468,
-					   ifelse(traits_df$site == 'WAY', 3101,
-					   ifelse(traits_df$site == 'TRE', 3715, NA)))
+                              ifelse(traits_df$site == 'WAY', 3101,
+                                     ifelse(traits_df$site == 'TRE', 3715, NA)))
 # CREATE DATA FRAME OF GROUP MEMBERSHIP OF EACH SPECIES
 Grouping_df <- as.data.frame(table(traits_df[,c("taxon", "functional_group")])) # tally up each species and functional group combination
 Grouping_df <- Grouping_df[Grouping_df$Freq != 0, -3] # remove every non-observed pairing
@@ -60,12 +60,19 @@ Grouping_df$taxon <- as.character(Grouping_df$taxon) # ensure that taxon column 
 ## Functionality ----------------------------------------------------------
 ## CALCULATE HYPERVOLUMES FOR DESIRED GROUPINGS OF DATA
 FUN.Hypervolumes <- function(data = traits_df, # the data frame with traits and the grouping column
-                             TraitCols = 6:12, # which columns of the data frame contain the trait values
+                             TraitCols = c(6, 8:12), # which columns of the data frame contain the trait values, default excludes wet mass
                              Grouping = "family" # by which column to establish groups
 ){
-  data_scale <- scale(data[,TraitCols]) # scale the data first
+  data_scale <- log(data[,TraitCols]) # now applying logarithmic transformation
   data_ls <- split(data_scale, data[,Grouping]) # split the data by grouping argument
-  hv_ls <- lapply(data_ls, hypervolume) # calculate hypervolume for each group separately
+  hv_ls <- lapply(data_ls, FUN = function(x){
+    if(0 %in% apply(apply(x, 2, range), 2, diff)){
+      return(NA)
+    }else{
+      return(hypervolume(x))  
+    }
+  }
+  ) # calculate hypervolume for each group separately
   return(hv_ls) # return list of volumes with one element for each group
   # volumes_ls <- lapply(hv_ls, get_volume)
   # return(volumes_ls)
@@ -74,7 +81,7 @@ FUN.Hypervolumes <- function(data = traits_df, # the data frame with traits and 
 ## CALCULATE OVERLAP OF HYPERVOLUMES
 FUN.Overlap <- function(data, # the list of hypervolumes from which to pull
                         names # the names of the hypervolumes which to compare
-                        ){
+){
   overlap <- hypervolume_set(data[[names[1]]], data[[names[2]]], check.memory = FALSE) # extract hypervolumes and safe as set
   overlap <- hypervolume::hypervolume_overlap_statistics(overlap)[1] # jaccard distance calculation
   return(overlap) # return numeric overlap
@@ -150,8 +157,8 @@ Vols_df <- data.frame(values = unlist(ID_vols),
 Vols_df$ID <- gsub(Vols_df$ID, pattern = ".untitled", replacement = "")
 # create plotting data and filter out the outlier which is TRE_1_NA_Rhynchospora macrochaeta
 plot_df <- plyr::join(x = Vols_df, y = traits_df, by = "ID") %>%
-			distinct(values, ID, .keep_all = TRUE) %>%
-			filter(values != max(.$values)) 
+  distinct(values, ID, .keep_all = TRUE) %>%
+  filter(values != max(.$values)) 
 ### factorise columns that need to be factors
 plot_df$taxon <- factor(plot_df$taxon, levels = c('Halenia umbellata', 'Lachemilla orbiculata', 'Paspalum bonplandianum', 'Rhynchospora macrochaeta', 'Gaultheria glomerata', 'Vaccinium floribundum'))
 plot_df$functional_group <- as.factor(plot_df$functional_group)
@@ -259,22 +266,22 @@ print(gplot)
 print("Hypervolume linear mixed effect model")
 ### taxonomic grouping of species
 fg <- traits_wide %>%
-		mutate(taxon = str_replace(taxon, ' ', '.')) %>%
-		distinct(taxon, functional_group, family)
+  mutate(taxon = str_replace(taxon, ' ', '.')) %>%
+  distinct(taxon, functional_group, family)
 ### elevation at sites		
 el.values <- traits_wide %>%
-				group_by(site) %>%
-				summarise(elevation = mean(elevation))
+  group_by(site) %>%
+  summarise(elevation = mean(elevation))
 ### model data frame containing volume size, study compartments (site, plot, individual), taxonomic memembership, and elevation 				
 temp <- Vols_df %>%
-			separate(ID, c('site', 'plot_id', 'individual_nr', 'taxon'),  sep = '_') %>%
-			mutate(taxon = str_replace(taxon, ' ', '.'),
-				plot_id = factor(plot_id),
-				individual_nr = as.numeric(individual_nr)
-			   	) %>%
-			left_join(fg, by = 'taxon') %>%
-			left_join(el.values, by = 'site') %>%
-			na.omit # THIS WILL REMOVE THE OUTLIER AT INDEX = 102
+  separate(ID, c('site', 'plot_id', 'individual_nr', 'taxon'),  sep = '_') %>%
+  mutate(taxon = str_replace(taxon, ' ', '.'),
+         plot_id = factor(plot_id),
+         individual_nr = as.numeric(individual_nr)
+  ) %>%
+  left_join(fg, by = 'taxon') %>%
+  left_join(el.values, by = 'site') %>%
+  na.omit # THIS WILL REMOVE THE OUTLIER AT INDEX = 102
 temp$site %<>% factor(levels = c('WAY', 'ACJ', 'TRE'))
 
 # Add elevation instead of site
