@@ -79,36 +79,38 @@ for(i in unique(traits_log$trait)){
 } 
 
 #Colour palette for graph: https://paletton.com/#uid=54n140kjJo3hfJliyuOl7gxlT9k
+#Colour palette is in low saturation 
 #Variance Partitioning Plot 2 
 VP_Plot2<-ggplot(output2 %>% 
-                   filter(trait %notin% c("wet_mass_g", "dry_mass_g")), 
+                   filter(trait %notin% c("wet_mass_g")), 
                  aes(x=trait, y=value))+
   geom_col(aes(fill=Scale))+
   geom_text(aes(y=labypos, label=round(value,digits = 1)),colour="white", size = 5)+
-  scale_fill_manual (values = c("#77293e","#ae435f","#f27092","#543a83","#37245a"),
+  scale_fill_manual (values = c("#5D3640","#8A5462","#C68596","#8977AA","#4F4266"),
+                    #values = c("#77293e","#ae435f","#f27092","#543a83","#37245a"),
                      labels = c("Within Individual + Unexplained",
                                 "Between individuals within sites",
                                 "Between sites within taxon",
                                 "Between taxon within functional groups",
                                 "Between functional groups"))+
   ylab("Proportion of Variance (%)")+
-  xlab("")+
+  xlab("Log (natural) Transformed Traits")+
   blank_theme+
   labs(fill = "Ecological Scale")+
   scale_y_continuous(expand=c(0,0),limits=c(0,100.1))+#this forces the graph to actually start at 0% and end at 100%
   scale_x_discrete(limits = c(
-                              # "wet_mass_g","dry_mass_g",
-                              "ldmc", "leaf_area_cm2","sla_cm2_g","leaf_thickness_mm","plant_height_cm"),
+                              # "wet_mass_g",
+                              "dry_mass_g", "ldmc", "leaf_area_cm2","sla_cm2_g","leaf_thickness_mm","plant_height_cm"),
                    labels = c(
                               # "wet_mass_g"="Wet Mass (g)", 
-                              # "dry_mass_g"="Dry Mass (g)",
+                              "dry_mass_g"="Dry Mass (g)",
                               "ldmc"="LDMC", 
                               "leaf_area_cm2"=expression(paste("Leaf Area "(cm^2))),
                               "sla_cm2_g"=expression("SLA "(cm^2/g)), 
                               "leaf_thickness_mm"="Leaf Thickness (mm)",
                               "plant_height_cm"="Plant Height (cm)")) +
-  theme(axis.text.x = element_text(angle = 330, hjust = 0))+
-  labs(title = "functional group/taxon/site/individual")
+  theme(axis.text.x = element_text(angle = 330, hjust = 0))
+  #labs(title = "functional group/taxon/site/individual")
 VP_Plot2
 
 #### bootstrapping 95% CI for variance partitioning ####
