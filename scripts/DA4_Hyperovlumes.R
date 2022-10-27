@@ -272,6 +272,24 @@ print(overlap.plot)
 ggsave('overlap.plot.png', overlap.plot, units = 'in', height = 7, width = 7, dpi = 600)
 ggsave('overlap.plot.pdf', overlap.plot, units = 'in', height = 7, width = 7, dpi = 600)
 
+## original volume sizes
+functional_group_vols$Forb
+functional_group_vols$Graminoid
+functional_group_vols$Woody
+
+## overlaps
+ForbGram_ov <- FUN.Overlap(functional_group_hv, c("Forb", "Graminoid"))
+ForbWood_ov <- FUN.Overlap(functional_group_hv, c("Forb", "Woody"))
+WoodGram_ov <- FUN.Overlap(functional_group_hv, c("Woody", "Graminoid"))
+
+## report overlaps
+message("Forb + Graminoid")
+ForbGram_ov/(functional_group_vols$Forb + functional_group_vols$Graminoid)
+message("Forb + Woody")
+ForbWood_ov/(functional_group_vols$Forb + functional_group_vols$Woody)
+message("Graminoid + Woody")
+WoodGram_ov/(functional_group_vols$Graminoid + functional_group_vols$Woody)
+
 ## Linear Mixed Effect Model of Volume Size -------------------------------
 print("Hypervolume linear mixed effect model")
 ### taxonomic grouping of species
