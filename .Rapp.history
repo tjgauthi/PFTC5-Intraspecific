@@ -1,0 +1,1041 @@
+library(traitstrap)#
+library(tidyr)#
+library(PearsonDS)#
+library(ape)#
+library(phangorn)#
+library(parallel)#
+library(doParallel)#
+library(foreach)#
+#
+### Parallel stuff#
+cl <- makeCluster(detectCores()-1)#
+registerDoParallel(cl)
+if(Sys.info()["user"]=="lauraj9897"){setwd('/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/')}
+library(traitstrap)#
+library(tidyr)#
+library(PearsonDS)#
+library(ape)#
+library(phangorn)#
+library(parallel)#
+library(doParallel)#
+library(foreach)#
+#
+### Parallel stuff#
+cl <- makeCluster(detectCores()-1)#
+registerDoParallel(cl)
+traits_wide <- data.frame(read.csv('SA_script_output/SA_traits_scaled.csv'))
+community <- data.frame(read.csv('SA_script_output/SA_community.csv'))
+community <- community[which(!is.na(community$perc_cover)),]
+community$plot_smpl<-as.character(community$plot_smpl)
+community <- community[which(community$perc_cover!=0),]
+names(traits_wide)
+traits_wide <- data.frame(read.csv('SA_script_output/SA_traits_scaled.csv')) %>% select('height_cm', 'C_to_N_ratio', 'd_13C_12C', 'leaf_area_cm2', 'lma', 'fwc')
+community <- data.frame(read.csv('SA_script_output/SA_community.csv'))
+community <- community[which(!is.na(community$perc_cover)),]
+community$plot_smpl<-as.character(community$plot_smpl)
+community <- community[which(community$perc_cover!=0),]
+traits <- gather(traits_wide, key = 'trait', value = 'value', 7:13)
+names(traits_wide)
+traits_wide <- data.frame(read.csv('SA_script_output/SA_traits_scaled.csv')) %>% select('X', 'uid', 'species', 'latitude', 'logitude', 'region', 'height_cm', 'C_to_N_ratio', 'd_13C_12C', 'leaf_area_cm2', 'lma', 'fwc')
+traits_wide <- data.frame(read.csv('SA_script_output/SA_traits_scaled.csv')) %>% select('X', 'uid', 'species', 'latitude', 'longitude', 'region', 'height_cm', 'C_to_N_ratio', 'd_13C_12C', 'leaf_area_cm2', 'lma', 'fwc')
+names(traits_wide)
+head(read.csv('SA_script_output/SA_traits_subset.csv'))
+if(Sys.info()["user"]=="lauraj9897"){setwd('/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/')}
+#install.packages("devtools")#
+#library(devtools)#
+#devtools::install_github("richardjtelford/traitstrap")#
+library(traitstrap)#
+library(tidyr)#
+library(PearsonDS)#
+library(ape)#
+library(phangorn)#
+library(parallel)#
+library(doParallel)#
+library(foreach)#
+### Parallel stuff#
+cl <- makeCluster(detectCores()-1)#
+registerDoParallel(cl)#
+#inputs:#
+#traits
+traits_wide <- data.frame(read.csv('SA_script_output/SA_traits_null_scaled.csv'))
+names(traits_wide)
+traits_wide <- data.frame(read.csv('SA_script_output/SA_traits_null_scaled.csv')) %>% select('X', 'uid', 'species', 'latitude', 'longitude', 'region', 'height_cm', 'C_to_N_ratio', 'd_13C_12C', 'leaf_area_cm2', 'lma', 'fwc')
+community <- data.frame(read.csv('SA_script_output/SA_community.csv'))
+community <- community[which(!is.na(community$perc_cover)),]
+community$plot_smpl<-as.character(community$plot_smpl)
+community <- community[which(community$perc_cover!=0),]
+traits_wide <- data.frame(read.csv('SA_script_output/SA_traits_null_scaled.csv'))
+names(traits_wide)
+traits_wide <- data.frame(read.csv('SA_script_output/SA_traits_null_scaled.csv'))
+community <- data.frame(read.csv('SA_script_output/SA_community.csv'))
+community <- community[which(!is.na(community$perc_cover)),]
+community$plot_smpl<-as.character(community$plot_smpl)
+community <- community[which(community$perc_cover!=0),]
+traits <- gather(traits_wide, key = 'trait', value = 'value', 7:13)
+traits$value <- as.numeric(traits$value)
+traits <- traits[which(!is.na(traits$value)), ]
+traits$plot_smpl<- as.character(traits$plot_smpl)
+traits <- gather(traits_wide, key = 'trait', value = 'value', 7:13)
+traits$value <- as.numeric(traits$value)
+traits <- traits[which(!is.na(traits$value)), ]
+traits
+head(traits)
+traits$plot_smpl<-1#add a dummy plot that will be ignored as it won't be matched (leading to the use of region data)
+traits$plot_smpl
+head(traits)
+traits$plot_smpl<- as.character(traits$plot_smpl)
+unique(traits$trait)
+traits_sub <- traits[which(traits$trait == 'null_norm'),]
+if(Sys.info()["user"]=="lauraj9897"){phyloPath <- '/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/phylogenies/'}
+allFiles <- list.files(path = phyloPath, '.tre', full.names = TRUE)#
+set.seed(666)#
+sampleFiles <- sample(allFiles, 1, replace = FALSE)#
+#
+# Impute traits. Impute traits prioritizes trait data that are collected at the lowest level of the 'scale_hierarchy'. If trait data were not collected at the lowest level, but exist within the lowest level, trait data are taken from the next highest level. #
+traits_imputed <- traitstrap::trait_impute(#
+  comm = community,#
+  traits = traits_sub,#
+  scale_hierarchy = c('region','plot_smpl'),#
+  global = TRUE,#
+  taxon_col = 'species',#
+  trait_col = 'trait',#
+  value_col = 'value',#
+  abundance_col = 'perc_cover'#
+)#
+# Iterate through random sample of phylogenies (multiple phylogenies exist to lessen uncertainty of the position of missing species within the phylogeny)#
+for (j in 1:length(sampleFiles)) {#
+  # Read in the current phylogeny and assign it to object phyloName.#
+  phylogeny <- read.tree(sampleFiles[j])#
+  phyloName <- sampleFiles[j]#
+  # Remove unnecessary nodes from the phylogeny at community/plot level.#
+  phylogeny <- keep.tip(phy = phylogeny, tip = intersect(x = phylogeny$tip.label, y = gsub(pattern = " ", replacement = "_", x = unique(community$species))))#
+  # Create an empty output object to bind our output to later.#
+  test_out <- NULL#
+  # Extract the index for the first and last nodes#
+  node_start <- length(phylogeny$tip.label)+1#
+  node_end <- phylogeny$Nnode + length(phylogeny$tip.label)#
+  # Iterate through node communities (communities are at the region level) to get a list of species (species_i) in each region.#
+  foreach_out_j <- foreach(h = node_start:node_end, .packages = c("ape", "traitstrap"), .combine = rbind) %dopar% {#
+  	# Print statement so we know what's going on maybe? (we don't)#
+  	print(paste("starting node", h))#
+  	# Check if the node has already been done (in case the code was stopped part of the way through or something)#
+  	if(file.exists(file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""))) {#
+  		# If the node file already exists, read the file and elimate the 'X' column#
+  		out_h <- read.csv(file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""), stringsAsFactors = F )#
+  		out_h <- out_h[which(colnames(out_h) != "X")]#
+  		# Bind the output for that node to the rest of the nodes and return.#
+  		test_out <- rbind(test_out, out_h)#
+  		print(paste("Returning found node", h))#
+  		return(out_h)#
+  	} # Close if data are already present in temp folder#
+  	# Make an empty output dataframe to populate with out node moments#
+  	out_h <- data.frame(matrix(nrow = 0, ncol = 19))#
+  	colnames(out_h)<-  c("global", "region", "plot_smpl", "trait", "n", "mean", "ci_low_mean", "ci_high_mean", "var", "ci_low_var", "ci_high_var", "skew", "ci_low_skew", "ci_high_skew", "kurt", "ci_low_kurt", "ci_high_Kurt", "phylo", "node")   #
+  	# Output to inform progress if it's a multiple of 5#
+  	if (round(x = (h-length(phylogeny$tip.label))/(phylogeny$Nnode+length(phylogeny$tip.label)), digits = 2)*100 %% 5 == 0) {#
+  		print(paste('Node Progress: ', round(x = (h-length(phylogeny$tip.label))/(phylogeny$Nnode+length(phylogeny$tip.label)), digits = 2)*100, "% done", sep = ""))#
+  	}#
+  	# Extract data for hth clade#
+  	clade_h <- extract.clade(phy = phylogeny, node = h)#
+  	## If node descendent is in community, generate bootstrapped distribution and calculate moments#
+  	# We did this because plotID is nested in site which is nested in gradient. Only the unique combination of all three gives us the specific community we're interested in. We can't just match the uniqueID since that isn't in the traits_imputed object.#
+  	prunedTraits <- traits_imputed[which(traits_imputed$species %in% gsub(pattern="_",replacement = " ",x = clade_h$tip.label)), ]#
+  	# If the clade is empty (of species in our communities), make an empty dataframe.#
+  	if(nrow(prunedTraits) == 0) {#
+  		moments_h <- data.frame(matrix(nrow = 1, ncol = 19))#
+  		colnames(moments_h) <-  c("global", "region", "plot_smpl", "trait", "n", "mean", "ci_low_mean", "ci_high_mean", "var", "ci_low_var", "ci_high_var", "skew", "ci_low_skew", "ci_high_skew", "kurt", "ci_low_kurt", "ci_high_Kurt", "phylo", "node")   #
+  		moments_h$phylo <- phyloName#
+  		moments_h$node <- h#
+  		out_h <- rbind(out_h, moments_h)#
+  		write.csv(x = out_h, file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName,split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""), row.names = T)#
+  	} # Close if empty clade statement#
+  		# Else if the clade has traits, calculate distribution moments and populate node_moments#
+  		else {#
+  			moments_h <- trait_np_bootstrap(prunedTraits, nrep = 100, sample_size = 200)#
+  			moments_h <- trait_summarise_boot_moments(moments_h)#
+  			moments_h <- as.data.frame(moments_h)#
+  			moments_h$phylo <- phyloName#
+  			moments_h$node <- h#
+  			# Bind and write output#
+  			out_h <- rbind(out_h, moments_h)#
+  			write.csv(x = out_h, file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""), row.names = T)#
+#
+  		}    # Close else statement#
+	}    # Close node loop h#
+	# If there is only one phylogeny, write the output of the one phylogeny. Else rbind the output for all phylogenies#
+	if(j == 1) {node_moments <- foreach_out_j} else{node_moments <- rbind(node_moments, foreach_out_j)}#
+	# Output to inform progress  #
+	print(paste('Phylogeny Progress: ', j/length(sampleFiles)*100, "% done", sep = "") )#
+}    # Close phylogeny loop
+write.csv(node_moments, '/SA_script_output/SA_node_moments_scaled_null.csv')
+if(Sys.info()["user"]=="lauraj9897"){setwd('/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/')}
+write.csv(node_moments, '/SA_script_output/SA_node_moments_scaled_null.csv')
+getwd()
+write.csv(node_moments, 'SA_script_output/SA_node_moments_scaled_null.csv')
+if(Sys.info()["user"]=="lauraj9897"){setwd('/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/')}
+library(ggplot2)#
+library(tidyr)#
+library(dplyr)#
+library(rsq)#
+library(intervals)#
+library(PearsonDS)#
+#library(gsl)#
+library(BIEN)#
+library(ape)#
+library(lme4)#
+library(lmerTest)#
+library(RColorBrewer)#
+library(grid)#
+library(gtable)#
+library(stringr)#
+library(mgcv)#
+source('SA_R_functions/overlapCI_function.R')#
+source('SA_R_functions/moment_clade_corrs.R')#
+source('SA_R_functions/moment_diff_clade_corrs.R')#
+source('SA_R_functions/plot_moment_deltaMean.R')#
+source('SA_R_functions/get_x_int.R')#
+source('SA_R_functions/get_n_child_nodes.R')#
+source('SA_R_functions/plot_moment_diffs_on_phylo.R')#
+source('SA_R_functions/label_nodes.R')
+moments_df <- readRDS('SA_script_output/SA_node_moments_info_scaled_sub.rds')
+moments_df <-  data.frame(moments_df[2:28])#
+#
+# Read columns 1:21 as numeric#
+a <- c(6:18, 20:22)#
+moments_df[, a] <- apply(moments_df[, a], 2, function(x) as.numeric(x))#
+#
+# Convert excess kurtosis (and the CI) to target kurtosis by adding 3?#
+moments_df[16:18] <- moments_df[16:18] + 3 #
+moments_df <- moments_df[which(!is.na(moments_df$trait)), ]#
+#
+# Read in random data
+moments_random_df <- read.csv('SA_script_output/SA_node_moments_scaled_null.csv', header = T, stringsAsFactors = FALSE)
+names(moments_random_df)
+moments_random_df <- read.csv('SA_script_output/SA_node_moments_scaled_null.csv', header = T, stringsAsFactors = FALSE) %>%#
+						unite('region.plot_smple', 3:4, sep = '.')
+names(moments_random_df)
+moments_random_df <- data.frame(moments_random_df[2:19])
+moments_random_df <- read.csv('SA_script_output/SA_node_moments_scaled_null.csv', header = T, stringsAsFactors = FALSE) %>%#
+						unite('region.plot_smple', 3:4, sep = '.', remove = FALSE)
+names(moments_random_df)
+moments_random_df <- data.frame(moments_random_df[2:21])
+moments_random_df <- read.csv('SA_script_output/SA_node_moments_scaled_null.csv', header = T, stringsAsFactors = FALSE)[-1] %>%#
+						unite('region.plot_smple', 2:3, sep = '.', remove = FALSE)
+names(moments_random_df)
+b <- c(6:18, 21)
+moments_random_df[, b] <- apply(moments_random_df[, b], 2, function(x) as.numeric(x))
+b <- c(6:18, 20)
+moments_random_df[, b] <- apply(moments_random_df[, b], 2, function(x) as.numeric(x))
+moments_random_df[16:18] <- moments_random_df[16:18] + 3
+moments_random_df <- moments_random_df[which(!is.na(moments_random_df$trait)), ]
+phylos_list <- rep(moments_df$phylo[1], dim(moments_random_df)[1])
+moments_random_df$phylo <- phylos_list
+moments_random_df$phylo
+clade_names <- data.frame(read.csv('SA_script_output/SA_node_names.csv', header = T))[-1]
+moments_random_df <- left_join(moments_random_df, clade_names, by = 'node')
+names(moments_df)
+names(moments_random_df)
+moments_df <- readRDS('SA_script_output/SA_node_moments_info_scaled_sub.rds')
+names(moments_df)
+head(node_moments)
+moments_df <- readRDS('SA_script_output/SA_node_moments_info_scaled_sub.rds')
+names(moments_df)
+moments_df <-  data.frame(moments_df[2:28])
+a <- c(6:18, 20:22)
+moments_df[, a] <- apply(moments_df[, a], 2, function(x) as.numeric(x))
+moments_df[16:18] <- moments_df[16:18] + 3
+moments_df <- moments_df[which(!is.na(moments_df$trait)), ]
+moments_df <- moments_df[c(1:23, 25:27, 24:28)]
+moments_df <- moments_df[c(1:23, 25:27, 24, 28)]
+moments_df[c(1:23, 25:27, 24, 28)]
+moments_df <- readRDS('SA_script_output/SA_node_moments_info_scaled_sub.rds')#
+moments_df <-  data.frame(moments_df[2:28])#
+#
+# Read columns 1:21 as numeric#
+a <- c(6:18, 20:22)#
+moments_df[, a] <- apply(moments_df[, a], 2, function(x) as.numeric(x))#
+#
+# Convert excess kurtosis (and the CI) to target kurtosis by adding 3?#
+moments_df[16:18] <- moments_df[16:18] + 3 #
+moments_df <- moments_df[which(!is.na(moments_df$trait)), ]
+names(moments_df)
+moments_df <- readRDS('SA_script_output/SA_node_moments_info_scaled_sub.rds')
+head(moments_df)
+names(moments_df)
+traits_wide <- data.frame(read.csv('SA_script_output/SA_traits_null_02062021.csv'))#
+#traits_wide <- traits_wide %>% select(-c(height_cm, C_to_N_ratio, d_13C_12C, leaf_area_cm2, lma, fwc))#
+#traits_wide <- data.frame(read.csv('SA_script_output/SA_traits.csv'))#
+community <- data.frame(read.csv('SA_script_output/SA_community.csv'))#
+#cut community data without percent cover#
+community <- community[which(!is.na(community$perc_cover)),]#
+community$plot_smpl<-as.character(community$plot_smpl)#
+community <- community[which(community$perc_cover!=0),]#
+# Put trait data in long format, make value column numeric, drop observations with NA for trait value#
+traits <- gather(traits_wide, key = 'trait', value = 'value', 7:13)#
+traits$value <- as.numeric(traits$value)#
+traits <- traits[which(!is.na(traits$value)), ]#
+traits$plot_smpl <- 1 #add a dummy plot that will be ignored as it won't be matched (leading to the use of region data)#
+traits$plot_smpl <- as.character(traits$plot_smpl)#
+#
+#traits_sub <- traits[which(traits$trait == 'height_cm' | traits$trait == 'C_to_N_ratio' | traits$trait == 'd_13C_12C' | traits$trait == 'leaf_area_cm2' | traits$trait == 'lma' | traits$trait == 'fwc' | traits$trait == 'random_trait'),]#
+traits_sub <- traits %>% filter(trait == 'null_norm')#
+# Phylogenetic data (from Brian's code). Select 100 random phylogenies to reduce uncertainty. Lists of species descended from each node.#
+if(Sys.info()["user"]=="lauraj9897"){phyloPath <- '/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/phylogenies/'}#
+if(Sys.info()["user"]%in%c("Brian","Brian Maitner")){phyloPath <-"phylogenies/"}#
+allFiles <- list.files(path = phyloPath, '.tre', full.names = TRUE)#
+set.seed(666)#
+sampleFiles <- sample(allFiles, 1, replace = FALSE)#
+# Impute traits. Impute traits prioritizes trait data that are collected at the lowest level of the 'scale_hierarchy'. If trait data were not collected at the lowest level, but exist within the lowest level, trait data are taken from the next highest level. #
+traits_imputed <- traitstrap::trait_impute(#
+  comm = community,#
+  traits = traits_sub,#
+  scale_hierarchy = c('region','plot_smpl'),#
+  global = TRUE,#
+  taxon_col = 'species',#
+  trait_col = 'trait',#
+  value_col = 'value',#
+  abundance_col = 'perc_cover'#
+)#
+# Iterate through random sample of phylogenies (multiple phylogenies exist to lessen uncertainty of the position of missing species within the phylogeny)#
+for (j in 1:length(sampleFiles)) {#
+  # Read in the current phylogeny and assign it to object phyloName.#
+  phylogeny <- read.tree(sampleFiles[j])#
+  phyloName <- sampleFiles[j]#
+  # Remove unnecessary nodes from the phylogeny at community/plot level.#
+  phylogeny <- keep.tip(phy = phylogeny, tip = intersect(x = phylogeny$tip.label, y = gsub(pattern = " ", replacement = "_", x = unique(community$species))))#
+  # Create an empty output object to bind our output to later.#
+  test_out <- NULL#
+  # Extract the index for the first and last nodes#
+  node_start <- length(phylogeny$tip.label)+1#
+  node_end <- phylogeny$Nnode + length(phylogeny$tip.label)#
+  # Iterate through node communities (communities are at the region level) to get a list of species (species_i) in each region.#
+  foreach_out_j <- foreach(h = node_start:node_end, .packages = c("ape", "traitstrap"), .combine = rbind) %dopar% {#
+  	# Print statement so we know what's going on maybe? (we don't)#
+  	print(paste("starting node", h))#
+  	# Check if the node has already been done (in case the code was stopped part of the way through or something)#
+  	if(file.exists(file = paste(getwd(), "/SA_script_output/temp_output3/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, ".csv", sep = ""))) {#
+  		# If the node file already exists, read the file and elimate the 'X' column#
+  		out_h <- read.csv(file = paste(getwd(), "/SA_script_output/temp_output3/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, ".csv", sep = ""), stringsAsFactors = F )#
+  		out_h <- out_h[which(colnames(out_h) != "X")]#
+  		# Bind the output for that node to the rest of the nodes and return.#
+  		test_out <- rbind(test_out, out_h)#
+  		print(paste("Returning found node", h))#
+  		return(out_h)#
+  	} # Close if data are already present in temp folder#
+  	# Make an empty output dataframe to populate with out node moments#
+  	out_h <- data.frame(matrix(nrow = 0, ncol = 19))#
+  	colnames(out_h)<-  c("global", "region", "plot_smpl", "trait", "n", "mean", "ci_low_mean", "ci_high_mean", "var", "ci_low_var", "ci_high_var", "skew", "ci_low_skew", "ci_high_skew", "kurt", "ci_low_kurt", "ci_high_Kurt", "phylo", "node")   #
+  	# Output to inform progress if it's a multiple of 5#
+  	if (round(x = (h-length(phylogeny$tip.label))/(phylogeny$Nnode+length(phylogeny$tip.label)), digits = 2)*100 %% 5 == 0) {#
+  		print(paste('Node Progress: ', round(x = (h-length(phylogeny$tip.label))/(phylogeny$Nnode+length(phylogeny$tip.label)), digits = 2)*100, "% done", sep = ""))#
+  	}#
+  	# Extract data for hth clade#
+  	clade_h <- extract.clade(phy = phylogeny, node = h)#
+  	## If node descendent is in community, generate bootstrapped distribution and calculate moments#
+  	# We did this because plotID is nested in site which is nested in gradient. Only the unique combination of all three gives us the specific community we're interested in. We can't just match the uniqueID since that isn't in the traits_imputed object.#
+  	prunedTraits <- traits_imputed[which(traits_imputed$species %in% gsub(pattern="_",replacement = " ",x = clade_h$tip.label)), ]#
+  	# If the clade is empty (of species in our communities), make an empty dataframe.#
+  	if(nrow(prunedTraits) == 0) {#
+  		moments_h <- data.frame(matrix(nrow = 1, ncol = 19))#
+  		colnames(moments_h) <-  c("global", "region", "plot_smpl", "trait", "n", "mean", "ci_low_mean", "ci_high_mean", "var", "ci_low_var", "ci_high_var", "skew", "ci_low_skew", "ci_high_skew", "kurt", "ci_low_kurt", "ci_high_Kurt", "phylo", "node")   #
+  		moments_h$phylo <- phyloName#
+  		moments_h$node <- h#
+  		out_h <- rbind(out_h, moments_h)#
+  		write.csv(x = out_h, file = paste(getwd(), "/SA_script_output/temp_output3/", strsplit(x = strsplit(x = phyloName,split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, ".csv", sep = ""), row.names = T)#
+  	} # Close if empty clade statement#
+  		# Else if the clade has traits, calculate distribution moments and populate node_moments#
+  		else {#
+  			moments_h <- trait_np_bootstrap(prunedTraits, nrep = 100, sample_size = 200)#
+  			moments_h <- trait_summarise_boot_moments(moments_h)#
+  			moments_h <- as.data.frame(moments_h)#
+  			moments_h$phylo <- phyloName#
+  			moments_h$node <- h#
+  			# Bind and write output#
+  			out_h <- rbind(out_h, moments_h)#
+  			write.csv(x = out_h, file = paste(getwd(), "/SA_script_output/temp_output3/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, ".csv", sep = ""), row.names = T)#
+#
+  		}    # Close else statement#
+	}    # Close node loop h#
+	# If there is only one phylogeny, write the output of the one phylogeny. Else rbind the output for all phylogenies#
+	if(j == 1) {node_moments <- foreach_out_j} else{node_moments <- rbind(node_moments, foreach_out_j)}#
+	# Output to inform progress  #
+	print(paste('Phylogeny Progress: ', j/length(sampleFiles)*100, "% done", sep = "") )#
+}    # Close phylogeny loop
+if(Sys.info()["user"]=="lauraj9897"){setwd('/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/')}
+source("SA_R_functions/append_node_info.R")
+community$species <- gsub(' ', '_', community$species)
+head(node_moments)
+a <- read.csv('SA_script_output/SA_node_moments_info_12072020_sub.csv')
+names(a)
+if(Sys.info()["user"]=="lauraj9897"){setwd('/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/')}
+library(traitstrap)#
+library(tidyr)#
+library(PearsonDS)#
+library(ape)#
+library(phangorn)#
+library(parallel)#
+library(doParallel)#
+library(foreach)#
+### Parallel stuff#
+cl <- makeCluster(detectCores()-1)#
+registerDoParallel(cl)
+traits_wide <- data.frame(read.csv('SA_script_output/SA_traits_null_scaled.csv'))#
+#traits_wide <- traits_wide %>% select(-c(height_cm, C_to_N_ratio, d_13C_12C, leaf_area_cm2, lma, fwc))#
+#traits_wide <- data.frame(read.csv('SA_script_output/SA_traits.csv'))#
+community <- data.frame(read.csv('SA_script_output/SA_community.csv'))#
+#cut community data without percent cover#
+community <- community[which(!is.na(community$perc_cover)),]#
+community$plot_smpl<-as.character(community$plot_smpl)#
+community <- community[which(community$perc_cover!=0),]#
+# Put trait data in long format, make value column numeric, drop observations with NA for trait value#
+traits <- gather(traits_wide, key = 'trait', value = 'value', 7:13)#
+traits$value <- as.numeric(traits$value)#
+traits <- traits[which(!is.na(traits$value)), ]#
+traits$plot_smpl <- 1 #add a dummy plot that will be ignored as it won't be matched (leading to the use of region data)#
+traits$plot_smpl <- as.character(traits$plot_smpl)#
+#
+#traits_sub <- traits[which(traits$trait == 'height_cm' | traits$trait == 'C_to_N_ratio' | traits$trait == 'd_13C_12C' | traits$trait == 'leaf_area_cm2' | traits$trait == 'lma' | traits$trait == 'fwc' | traits$trait == 'random_trait'),]#
+traits_sub <- traits %>% filter(trait == 'null_norm')#
+# Phylogenetic data (from Brian's code). Select 100 random phylogenies to reduce uncertainty. Lists of species descended from each node.#
+if(Sys.info()["user"]=="lauraj9897"){phyloPath <- '/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/phylogenies/'}#
+if(Sys.info()["user"]%in%c("Brian","Brian Maitner")){phyloPath <-"phylogenies/"}#
+allFiles <- list.files(path = phyloPath, '.tre', full.names = TRUE)#
+set.seed(666)#
+sampleFiles <- sample(allFiles, 1, replace = FALSE)#
+# Impute traits. Impute traits prioritizes trait data that are collected at the lowest level of the 'scale_hierarchy'. If trait data were not collected at the lowest level, but exist within the lowest level, trait data are taken from the next highest level. #
+traits_imputed <- traitstrap::trait_impute(#
+  comm = community,#
+  traits = traits_sub,#
+  scale_hierarchy = c('region','plot_smpl'),#
+  global = TRUE,#
+  taxon_col = 'species',#
+  trait_col = 'trait',#
+  value_col = 'value',#
+  abundance_col = 'perc_cover'#
+)#
+# Iterate through random sample of phylogenies (multiple phylogenies exist to lessen uncertainty of the position of missing species within the phylogeny)#
+for (j in 1:length(sampleFiles)) {#
+  # Read in the current phylogeny and assign it to object phyloName.#
+  phylogeny <- read.tree(sampleFiles[j])#
+  phyloName <- sampleFiles[j]#
+  # Remove unnecessary nodes from the phylogeny at community/plot level.#
+  phylogeny <- keep.tip(phy = phylogeny, tip = intersect(x = phylogeny$tip.label, y = gsub(pattern = " ", replacement = "_", x = unique(community$species))))#
+  # Create an empty output object to bind our output to later.#
+  test_out <- NULL#
+  # Extract the index for the first and last nodes#
+  node_start <- length(phylogeny$tip.label)+1#
+  node_end <- phylogeny$Nnode + length(phylogeny$tip.label)#
+  # Iterate through node communities (communities are at the region level) to get a list of species (species_i) in each region.#
+  foreach_out_j <- foreach(h = node_start:node_end, .packages = c("ape", "traitstrap"), .combine = rbind) %dopar% {#
+  	# Print statement so we know what's going on maybe? (we don't)#
+  	print(paste("starting node", h))#
+  	# Check if the node has already been done (in case the code was stopped part of the way through or something)#
+  	if(file.exists(file = paste(getwd(), "/SA_script_output/temp_output3/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, ".csv", sep = ""))) {#
+  		# If the node file already exists, read the file and elimate the 'X' column#
+  		out_h <- read.csv(file = paste(getwd(), "/SA_script_output/temp_output3/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, ".csv", sep = ""), stringsAsFactors = F )#
+  		out_h <- out_h[which(colnames(out_h) != "X")]#
+  		# Bind the output for that node to the rest of the nodes and return.#
+  		test_out <- rbind(test_out, out_h)#
+  		print(paste("Returning found node", h))#
+  		return(out_h)#
+  	} # Close if data are already present in temp folder#
+  	# Make an empty output dataframe to populate with out node moments#
+  	out_h <- data.frame(matrix(nrow = 0, ncol = 19))#
+  	colnames(out_h)<-  c("global", "region", "plot_smpl", "trait", "n", "mean", "ci_low_mean", "ci_high_mean", "var", "ci_low_var", "ci_high_var", "skew", "ci_low_skew", "ci_high_skew", "kurt", "ci_low_kurt", "ci_high_Kurt", "phylo", "node")   #
+  	# Output to inform progress if it's a multiple of 5#
+  	if (round(x = (h-length(phylogeny$tip.label))/(phylogeny$Nnode+length(phylogeny$tip.label)), digits = 2)*100 %% 5 == 0) {#
+  		print(paste('Node Progress: ', round(x = (h-length(phylogeny$tip.label))/(phylogeny$Nnode+length(phylogeny$tip.label)), digits = 2)*100, "% done", sep = ""))#
+  	}#
+  	# Extract data for hth clade#
+  	clade_h <- extract.clade(phy = phylogeny, node = h)#
+  	## If node descendent is in community, generate bootstrapped distribution and calculate moments#
+  	# We did this because plotID is nested in site which is nested in gradient. Only the unique combination of all three gives us the specific community we're interested in. We can't just match the uniqueID since that isn't in the traits_imputed object.#
+  	prunedTraits <- traits_imputed[which(traits_imputed$species %in% gsub(pattern="_",replacement = " ",x = clade_h$tip.label)), ]#
+  	# If the clade is empty (of species in our communities), make an empty dataframe.#
+  	if(nrow(prunedTraits) == 0) {#
+  		moments_h <- data.frame(matrix(nrow = 1, ncol = 19))#
+  		colnames(moments_h) <-  c("global", "region", "plot_smpl", "trait", "n", "mean", "ci_low_mean", "ci_high_mean", "var", "ci_low_var", "ci_high_var", "skew", "ci_low_skew", "ci_high_skew", "kurt", "ci_low_kurt", "ci_high_Kurt", "phylo", "node")   #
+  		moments_h$phylo <- phyloName#
+  		moments_h$node <- h#
+  		out_h <- rbind(out_h, moments_h)#
+  		write.csv(x = out_h, file = paste(getwd(), "/SA_script_output/temp_output3/", strsplit(x = strsplit(x = phyloName,split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, ".csv", sep = ""), row.names = T)#
+  	} # Close if empty clade statement#
+  		# Else if the clade has traits, calculate distribution moments and populate node_moments#
+  		else {#
+  			moments_h <- trait_np_bootstrap(prunedTraits, nrep = 100, sample_size = 200)#
+  			moments_h <- trait_summarise_boot_moments(moments_h)#
+  			moments_h <- as.data.frame(moments_h)#
+  			moments_h$phylo <- phyloName#
+  			moments_h$node <- h#
+  			# Bind and write output#
+  			out_h <- rbind(out_h, moments_h)#
+  			write.csv(x = out_h, file = paste(getwd(), "/SA_script_output/temp_output3/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, ".csv", sep = ""), row.names = T)#
+#
+  		}    # Close else statement#
+	}    # Close node loop h#
+	# If there is only one phylogeny, write the output of the one phylogeny. Else rbind the output for all phylogenies#
+	if(j == 1) {node_moments <- foreach_out_j} else{node_moments <- rbind(node_moments, foreach_out_j)}#
+	# Output to inform progress  #
+	print(paste('Phylogeny Progress: ', j/length(sampleFiles)*100, "% done", sep = "") )#
+}    # Close phylogeny loop
+if(Sys.info()["user"]=="lauraj9897"){setwd('/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/')}
+community$species <- gsub(' ', '_', community$species)
+names(node_moments)
+node_moments <- append_node_info(node_moments = node_moments, community = community[which(community$species %in% phylogeny$tip.label), ]) #I think this works, running now
+names(node_moments)
+node_names <- read.csv('SA_script_output/SA_node_names.csv', header = T)[-1]
+node_moments2 <- left_join(node_moments, node_names, by = 'node') %>%#
+					unite('region.plot_smpl', 3:4, sep = '.', remove = FALSE)
+names(node_moments2)
+node_names <- read.csv('SA_script_output/SA_node_names.csv', header = T)[-1]
+names(node_moments)
+node_moments2 <- left_join(node_moments, node_names, by = 'node')
+names(node_moments2)
+node_moments2 <- left_join(node_moments, node_names, by = 'node') %>%#
+					unite('region.plot_smpl', 2:3, sep = '.', remove = FALSE)
+names(node_moments2)
+node_moments2 <- node_moments2[c(1:23, 26:28, 24:25)]
+names(node_moments2)
+saveRDS(node_moments2, 'SA_script_output/SA_node_moments_info_scaled_sub.rds')
+write.csv(node_moments2, 'SA_script_output/SA_node_moments_info_scaled_sub.csv')
+if(Sys.info()["user"]=="lauraj9897"){setwd('/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/')}
+library(ggplot2)#
+library(tidyr)#
+library(dplyr)#
+library(rsq)#
+library(intervals)#
+library(PearsonDS)#
+#library(gsl)#
+library(BIEN)#
+library(ape)#
+library(lme4)#
+library(lmerTest)#
+library(RColorBrewer)#
+library(grid)#
+library(gtable)#
+library(stringr)#
+library(mgcv)#
+source('SA_R_functions/overlapCI_function.R')#
+source('SA_R_functions/moment_clade_corrs.R')#
+source('SA_R_functions/moment_diff_clade_corrs.R')#
+source('SA_R_functions/plot_moment_deltaMean.R')#
+source('SA_R_functions/get_x_int.R')#
+source('SA_R_functions/get_n_child_nodes.R')
+source('SA_R_functions/plot_moment_diffs_on_phylo.R')#
+source('SA_R_functions/label_nodes.R')
+moments_df <- readRDS('SA_script_output/SA_node_moments_info_scaled_sub.rds')
+names(moments_df)
+a <- c(6:18, 21:23)
+moments_df[, a] <- apply(moments_df[, a], 2, function(x) as.numeric(x))
+moments_df[16:18] <- moments_df[16:18] + 3
+moments_df <- moments_df[which(!is.na(moments_df$trait)), ]
+names(moments_df)
+moments_random_df <- read.csv('SA_script_output/SA_node_moments_scaled_null.csv', header = T, stringsAsFactors = FALSE)[-1]
+head(moments_random_df)
+moments_random_df <- read.csv('SA_script_output/SA_node_moments_scaled_null.csv', header = T, stringsAsFactors = FALSE)[-1] %>%#
+						unite('region.plot_smple', 2:3, sep = '.', remove = FALSE)
+names(moments_random_df)
+b <- c(6:18)
+moments_random_df[, b] <- apply(moments_random_df[, b], 2, function(x) as.numeric(x))
+moments_random_df[16:18] <- moments_random_df[16:18] + 3
+moments_random_df <- moments_random_df[which(!is.na(moments_random_df$trait)), ]
+phylos_list <- rep(moments_df$phylo[1], dim(moments_random_df)[1])
+moments_random_df$phylo <- phylos_list
+head(moments_df)
+names(moments_df)
+test <- left_join(moments_random_df, moments_df[20:28], by = 'node')
+names(test)
+dim(test)
+dim(moments_random_df)
+if(Sys.info()["user"]=="lauraj9897"){setwd('/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/')}
+library(traitstrap)#
+library(tidyr)#
+library(PearsonDS)#
+library(ape)#
+library(phangorn)#
+library(parallel)#
+library(doParallel)#
+library(foreach)#
+#
+### Parallel stuff#
+cl <- makeCluster(detectCores()-1)#
+registerDoParallel(cl)#
+#
+#inputs:
+traits_wide <- data.frame(read.csv('SA_script_output/SA_traits_null_scaled.csv'))#
+community <- data.frame(read.csv('SA_script_output/SA_community.csv'))#
+#
+#cut community data without percent cover#
+community <- community[which(!is.na(community$perc_cover)),]#
+community$plot_smpl<-as.character(community$plot_smpl)#
+#
+community <- community[which(community$perc_cover!=0),]#
+# Put trait data in long format, make value column numeric, drop observations with NA for trait value#
+traits <- gather(traits_wide, key = 'trait', value = 'value', 7:13)#
+traits$value <- as.numeric(traits$value)#
+traits <- traits[which(!is.na(traits$value)), ]#
+traits$plot_smpl<-1#add a dummy plot that will be ignored as it won't be matched (leading to the use of region data)#
+traits$plot_smpl<- as.character(traits$plot_smpl)#
+#
+traits_sub <- traits[which(traits$trait == 'null_norm'),]#
+#
+# Phylogenetic data (from Brian's code). Select 100 random phylogenies to reduce uncertainty. Lists of species descended from each node.#
+if(Sys.info()["user"]=="lauraj9897"){phyloPath <- '/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/phylogenies/'}#
+if(Sys.info()["user"]%in%c("Brian","Brian Maitner")){phyloPath <-"phylogenies/"}#
+#
+allFiles <- list.files(path = phyloPath, '.tre', full.names = TRUE)#
+set.seed(666)#
+sampleFiles <- sample(allFiles, 1, replace = FALSE)
+traits_imputed <- traitstrap::trait_impute(#
+  comm = community,#
+  traits = traits_sub,#
+  scale_hierarchy = c('region','plot_smpl'),#
+  global = TRUE,#
+  taxon_col = 'species',#
+  trait_col = 'trait',#
+  value_col = 'value',#
+  abundance_col = 'perc_cover'#
+)
+for (j in 1:length(sampleFiles)) {#
+  # Read in the current phylogeny and assign it to object phyloName.#
+  phylogeny <- read.tree(sampleFiles[j])#
+  phyloName <- sampleFiles[j]#
+  # Remove unnecessary nodes from the phylogeny at community/plot level.#
+  phylogeny <- keep.tip(phy = phylogeny, tip = intersect(x = phylogeny$tip.label, y = gsub(pattern = " ", replacement = "_", x = unique(community$species))))#
+  # Create an empty output object to bind our output to later.#
+  test_out <- NULL#
+  # Extract the index for the first and last nodes#
+  node_start <- length(phylogeny$tip.label)+1#
+  node_end <- phylogeny$Nnode + length(phylogeny$tip.label)#
+  # Iterate through node communities (communities are at the region level) to get a list of species (species_i) in each region.#
+  foreach_out_j <- foreach(h = node_start:node_end, .packages = c("ape", "traitstrap"), .combine = rbind) %dopar% {#
+  	# Print statement so we know what's going on maybe? (we don't)#
+  	print(paste("starting node", h))#
+  	# Check if the node has already been done (in case the code was stopped part of the way through or something)#
+  	if(file.exists(file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""))) {#
+  		# If the node file already exists, read the file and elimate the 'X' column#
+  		out_h <- read.csv(file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""), stringsAsFactors = F )#
+  		out_h <- out_h[which(colnames(out_h) != "X")]#
+  		# Bind the output for that node to the rest of the nodes and return.#
+  		test_out <- rbind(test_out, out_h)#
+  		print(paste("Returning found node", h))#
+  		return(out_h)#
+  	} # Close if data are already present in temp folder#
+  	# Make an empty output dataframe to populate with out node moments#
+  	out_h <- data.frame(matrix(nrow = 0, ncol = 19))#
+  	colnames(out_h)<-  c("global", "region", "plot_smpl", "trait", "n", "mean", "ci_low_mean", "ci_high_mean", "var", "ci_low_var", "ci_high_var", "skew", "ci_low_skew", "ci_high_skew", "kurt", "ci_low_kurt", "ci_high_Kurt", "phylo", "node")   #
+  	# Output to inform progress if it's a multiple of 5#
+  	if (round(x = (h-length(phylogeny$tip.label))/(phylogeny$Nnode+length(phylogeny$tip.label)), digits = 2)*100 %% 5 == 0) {#
+  		print(paste('Node Progress: ', round(x = (h-length(phylogeny$tip.label))/(phylogeny$Nnode+length(phylogeny$tip.label)), digits = 2)*100, "% done", sep = ""))#
+  	}#
+  	# Extract data for hth clade#
+  	clade_h <- extract.clade(phy = phylogeny, node = h)#
+  	## If node descendent is in community, generate bootstrapped distribution and calculate moments#
+  	# We did this because plotID is nested in site which is nested in gradient. Only the unique combination of all three gives us the specific community we're interested in. We can't just match the uniqueID since that isn't in the traits_imputed object.#
+  	prunedTraits <- traits_imputed[which(traits_imputed$species %in% gsub(pattern="_",replacement = " ",x = clade_h$tip.label)), ]#
+  	# If the clade is empty (of species in our communities), make an empty dataframe.#
+  	if(nrow(prunedTraits) == 0) {#
+  		moments_h <- data.frame(matrix(nrow = 1, ncol = 19))#
+  		colnames(moments_h) <-  c("global", "region", "plot_smpl", "trait", "n", "mean", "ci_low_mean", "ci_high_mean", "var", "ci_low_var", "ci_high_var", "skew", "ci_low_skew", "ci_high_skew", "kurt", "ci_low_kurt", "ci_high_Kurt", "phylo", "node")   #
+  		moments_h$phylo <- phyloName#
+  		moments_h$node <- h#
+  		out_h <- rbind(out_h, moments_h)#
+  		write.csv(x = out_h, file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName,split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""), row.names = T)#
+  	} # Close if empty clade statement#
+  		# Else if the clade has traits, calculate distribution moments and populate node_moments#
+  		else {#
+  			moments_h <- trait_np_bootstrap(prunedTraits, nrep = 100, sample_size = 200)#
+  			moments_h <- trait_summarise_boot_moments(moments_h)#
+  			moments_h <- as.data.frame(moments_h)#
+  			moments_h$phylo <- phyloName#
+  			moments_h$node <- h#
+  			# Bind and write output#
+  			out_h <- rbind(out_h, moments_h)#
+  			write.csv(x = out_h, file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""), row.names = T)#
+#
+  		}    # Close else statement#
+	}    # Close node loop h#
+	# If there is only one phylogeny, write the output of the one phylogeny. Else rbind the output for all phylogenies#
+	if(j == 1) {node_moments <- foreach_out_j} else{node_moments <- rbind(node_moments, foreach_out_j)}#
+	# Output to inform progress  #
+	print(paste('Phylogeny Progress: ', j/length(sampleFiles)*100, "% done", sep = "") )#
+}    # Close phylogeny loop
+if(Sys.info()["user"]=="lauraj9897"){setwd('/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/')}
+source("SA_R_functions/append_node_info.R")
+node_moments <- append_node_info(node_moments = node_moments, community = community[which(community$species %in% phylogeny$tip.label), ]) #I think this works, running now
+head(node_moments)
+traits_sub
+head(traits_sub)
+traits_imputed <- traitstrap::trait_impute(#
+  comm = community,#
+  traits = traits_sub,#
+  scale_hierarchy = c('region','plot_smpl'),#
+  global = TRUE,#
+  taxon_col = 'species',#
+  trait_col = 'trait',#
+  value_col = 'value',#
+  abundance_col = 'perc_cover'#
+)
+head(traits_imputed)
+head(traits_imputed$trait)
+for (j in 1:length(sampleFiles)) {#
+  # Read in the current phylogeny and assign it to object phyloName.#
+  phylogeny <- read.tree(sampleFiles[j])#
+  phyloName <- sampleFiles[j]#
+  # Remove unnecessary nodes from the phylogeny at community/plot level.#
+  phylogeny <- keep.tip(phy = phylogeny, tip = intersect(x = phylogeny$tip.label, y = gsub(pattern = " ", replacement = "_", x = unique(community$species))))#
+  # Create an empty output object to bind our output to later.#
+  test_out <- NULL#
+  # Extract the index for the first and last nodes#
+  node_start <- length(phylogeny$tip.label)+1#
+  node_end <- phylogeny$Nnode + length(phylogeny$tip.label)#
+  # Iterate through node communities (communities are at the region level) to get a list of species (species_i) in each region.#
+  foreach_out_j <- foreach(h = node_start:node_end, .packages = c("ape", "traitstrap"), .combine = rbind) %dopar% {#
+  	# Print statement so we know what's going on maybe? (we don't)#
+  	print(paste("starting node", h))#
+  	# Check if the node has already been done (in case the code was stopped part of the way through or something)#
+  	if(file.exists(file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""))) {#
+  		# If the node file already exists, read the file and elimate the 'X' column#
+  		out_h <- read.csv(file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""), stringsAsFactors = F )#
+  		out_h <- out_h[which(colnames(out_h) != "X")]#
+  		# Bind the output for that node to the rest of the nodes and return.#
+  		test_out <- rbind(test_out, out_h)#
+  		print(paste("Returning found node", h))#
+  		return(out_h)#
+  	} # Close if data are already present in temp folder#
+  	# Make an empty output dataframe to populate with out node moments#
+  	out_h <- data.frame(matrix(nrow = 0, ncol = 19))#
+  	colnames(out_h)<-  c("global", "region", "plot_smpl", "trait", "n", "mean", "ci_low_mean", "ci_high_mean", "var", "ci_low_var", "ci_high_var", "skew", "ci_low_skew", "ci_high_skew", "kurt", "ci_low_kurt", "ci_high_Kurt", "phylo", "node")   #
+  	# Output to inform progress if it's a multiple of 5#
+  	if (round(x = (h-length(phylogeny$tip.label))/(phylogeny$Nnode+length(phylogeny$tip.label)), digits = 2)*100 %% 5 == 0) {#
+  		print(paste('Node Progress: ', round(x = (h-length(phylogeny$tip.label))/(phylogeny$Nnode+length(phylogeny$tip.label)), digits = 2)*100, "% done", sep = ""))#
+  	}#
+  	# Extract data for hth clade#
+  	clade_h <- extract.clade(phy = phylogeny, node = h)#
+  	## If node descendent is in community, generate bootstrapped distribution and calculate moments#
+  	# We did this because plotID is nested in site which is nested in gradient. Only the unique combination of all three gives us the specific community we're interested in. We can't just match the uniqueID since that isn't in the traits_imputed object.#
+  	prunedTraits <- traits_imputed[which(traits_imputed$species %in% gsub(pattern="_",replacement = " ",x = clade_h$tip.label)), ]#
+  	# If the clade is empty (of species in our communities), make an empty dataframe.#
+  	if(nrow(prunedTraits) == 0) {#
+  		moments_h <- data.frame(matrix(nrow = 1, ncol = 19))#
+  		colnames(moments_h) <-  c("global", "region", "plot_smpl", "trait", "n", "mean", "ci_low_mean", "ci_high_mean", "var", "ci_low_var", "ci_high_var", "skew", "ci_low_skew", "ci_high_skew", "kurt", "ci_low_kurt", "ci_high_Kurt", "phylo", "node")   #
+  		moments_h$phylo <- phyloName#
+  		moments_h$node <- h#
+  		out_h <- rbind(out_h, moments_h)#
+  		write.csv(x = out_h, file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName,split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""), row.names = T)#
+  	} # Close if empty clade statement#
+  		# Else if the clade has traits, calculate distribution moments and populate node_moments#
+  		else {#
+  			moments_h <- trait_np_bootstrap(prunedTraits, nrep = 100, sample_size = 200)#
+  			moments_h <- trait_summarise_boot_moments(moments_h)#
+  			moments_h <- as.data.frame(moments_h)#
+  			moments_h$phylo <- phyloName#
+  			moments_h$node <- h#
+  			# Bind and write output#
+  			out_h <- rbind(out_h, moments_h)#
+  			write.csv(x = out_h, file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""), row.names = T)#
+#
+  		}    # Close else statement#
+	}    # Close node loop h#
+	# If there is only one phylogeny, write the output of the one phylogeny. Else rbind the output for all phylogenies#
+	if(j == 1) {node_moments <- foreach_out_j} else{node_moments <- rbind(node_moments, foreach_out_j)}#
+	# Output to inform progress  #
+	print(paste('Phylogeny Progress: ', j/length(sampleFiles)*100, "% done", sep = "") )#
+}    # Close phylogeny loop
+if(Sys.info()["user"]=="lauraj9897"){setwd('/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/')}
+node_moments <- append_node_info(node_moments = node_moments, community = community[which(community$species %in% phylogeny$tip.label), ]) #I think this works, running now
+community[which(community$species %in% phylogeny$tip.label), ]
+phylogeny$tip.label
+community$species
+community
+community <- data.frame(read.csv('SA_script_output/SA_community.csv'))
+community <- community[which(!is.na(community$perc_cover)),]#
+community$plot_smpl<-as.character(community$plot_smpl)#
+#
+community <- community[which(community$perc_cover!=0),]
+community
+community$species
+node_moments <- append_node_info(node_moments = node_moments, community = community[which(community$species %in% phylogeny$tip.label), ]) #I think this works, running now
+if(Sys.info()["user"]=="lauraj9897"){setwd('/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/')}
+node_moments <- append_node_info(node_moments = node_moments, community = community[which(community$species %in% phylogeny$tip.label), ]) #I think this works, running now
+source("SA_R_functions/append_node_info.R")
+node_moments <- append_node_info(node_moments = node_moments, community = community[which(community$species %in% phylogeny$tip.label), ]) #I think this works, running now
+node_moments <- append_node_info(node_moments = node_moments, community = community[which(community$species %in% phylogeny$tip.label), ]) #I think this works, running now
+plot_moments_phylo(node_moments = node_moments, community = community, tree = 1, site = 'baviaanskloof', plotID = 'BK_1',moment = "skewness")
+node_moments <- append_node_info(node_moments = node_moments, community = community[which(community$species %in% phylogeny$tip.label), ]) #I think this works, running now
+if(Sys.info()["user"]=="lauraj9897"){setwd('/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/')}
+library(traitstrap)#
+library(tidyr)#
+library(PearsonDS)#
+library(ape)#
+library(phangorn)#
+library(parallel)#
+library(doParallel)#
+library(foreach)#
+#
+### Parallel stuff#
+cl <- makeCluster(detectCores()-1)#
+registerDoParallel(cl)
+traits_wide <- data.frame(read.csv('SA_script_output/SA_traits_null_scaled.csv'))
+community <- data.frame(read.csv('SA_script_output/SA_community.csv'))
+community <- community[which(!is.na(community$perc_cover)),]
+community$plot_smpl<-as.character(community$plot_smpl)
+community <- community[which(community$perc_cover!=0),]
+traits <- gather(traits_wide, key = 'trait', value = 'value', 7:13)
+traits$value <- as.numeric(traits$value)
+traits <- traits[which(!is.na(traits$value)), ]
+traits$plot_smpl<-1#add a dummy plot that will be ignored as it won't be matched (leading to the use of region data)
+traits$plot_smpl<- as.character(traits$plot_smpl)
+traits_sub <- traits[which(traits$trait == 'null_norm'),]
+if(Sys.info()["user"]=="lauraj9897"){phyloPath <- '/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/phylogenies/'}
+allFiles <- list.files(path = phyloPath, '.tre', full.names = TRUE)#
+set.seed(666)#
+sampleFiles <- sample(allFiles, 1, replace = FALSE)
+traits_imputed <- traitstrap::trait_impute(#
+  comm = community,#
+  traits = traits_sub,#
+  scale_hierarchy = c('region','plot_smpl'),#
+  global = TRUE,#
+  taxon_col = 'species',#
+  trait_col = 'trait',#
+  value_col = 'value',#
+  abundance_col = 'perc_cover'#
+)
+for (j in 1:length(sampleFiles)) {#
+  # Read in the current phylogeny and assign it to object phyloName.#
+  phylogeny <- read.tree(sampleFiles[j])#
+  phyloName <- sampleFiles[j]#
+  # Remove unnecessary nodes from the phylogeny at community/plot level.#
+  phylogeny <- keep.tip(phy = phylogeny, tip = intersect(x = phylogeny$tip.label, y = gsub(pattern = " ", replacement = "_", x = unique(community$species))))#
+  # Create an empty output object to bind our output to later.#
+  test_out <- NULL#
+  # Extract the index for the first and last nodes#
+  node_start <- length(phylogeny$tip.label)+1#
+  node_end <- phylogeny$Nnode + length(phylogeny$tip.label)#
+  # Iterate through node communities (communities are at the region level) to get a list of species (species_i) in each region.#
+  foreach_out_j <- foreach(h = node_start:node_end, .packages = c("ape", "traitstrap"), .combine = rbind) %dopar% {#
+  	# Print statement so we know what's going on maybe? (we don't)#
+  	print(paste("starting node", h))#
+  	# Check if the node has already been done (in case the code was stopped part of the way through or something)#
+  	if(file.exists(file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""))) {#
+  		# If the node file already exists, read the file and elimate the 'X' column#
+  		out_h <- read.csv(file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""), stringsAsFactors = F )#
+  		out_h <- out_h[which(colnames(out_h) != "X")]#
+  		# Bind the output for that node to the rest of the nodes and return.#
+  		test_out <- rbind(test_out, out_h)#
+  		print(paste("Returning found node", h))#
+  		return(out_h)#
+  	} # Close if data are already present in temp folder#
+  	# Make an empty output dataframe to populate with out node moments#
+  	out_h <- data.frame(matrix(nrow = 0, ncol = 19))#
+  	colnames(out_h)<-  c("global", "region", "plot_smpl", "trait", "n", "mean", "ci_low_mean", "ci_high_mean", "var", "ci_low_var", "ci_high_var", "skew", "ci_low_skew", "ci_high_skew", "kurt", "ci_low_kurt", "ci_high_Kurt", "phylo", "node")   #
+  	# Output to inform progress if it's a multiple of 5#
+  	if (round(x = (h-length(phylogeny$tip.label))/(phylogeny$Nnode+length(phylogeny$tip.label)), digits = 2)*100 %% 5 == 0) {#
+  		print(paste('Node Progress: ', round(x = (h-length(phylogeny$tip.label))/(phylogeny$Nnode+length(phylogeny$tip.label)), digits = 2)*100, "% done", sep = ""))#
+  	}#
+  	# Extract data for hth clade#
+  	clade_h <- extract.clade(phy = phylogeny, node = h)#
+  	## If node descendent is in community, generate bootstrapped distribution and calculate moments#
+  	# We did this because plotID is nested in site which is nested in gradient. Only the unique combination of all three gives us the specific community we're interested in. We can't just match the uniqueID since that isn't in the traits_imputed object.#
+  	prunedTraits <- traits_imputed[which(traits_imputed$species %in% gsub(pattern="_",replacement = " ",x = clade_h$tip.label)), ]#
+  	# If the clade is empty (of species in our communities), make an empty dataframe.#
+  	if(nrow(prunedTraits) == 0) {#
+  		moments_h <- data.frame(matrix(nrow = 1, ncol = 19))#
+  		colnames(moments_h) <-  c("global", "region", "plot_smpl", "trait", "n", "mean", "ci_low_mean", "ci_high_mean", "var", "ci_low_var", "ci_high_var", "skew", "ci_low_skew", "ci_high_skew", "kurt", "ci_low_kurt", "ci_high_Kurt", "phylo", "node")   #
+  		moments_h$phylo <- phyloName#
+  		moments_h$node <- h#
+  		out_h <- rbind(out_h, moments_h)#
+  		write.csv(x = out_h, file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName,split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""), row.names = T)#
+  	} # Close if empty clade statement#
+  		# Else if the clade has traits, calculate distribution moments and populate node_moments#
+  		else {#
+  			moments_h <- trait_np_bootstrap(prunedTraits, nrep = 100, sample_size = 200)#
+  			moments_h <- trait_summarise_boot_moments(moments_h)#
+  			moments_h <- as.data.frame(moments_h)#
+  			moments_h$phylo <- phyloName#
+  			moments_h$node <- h#
+  			# Bind and write output#
+  			out_h <- rbind(out_h, moments_h)#
+  			write.csv(x = out_h, file = paste(getwd(), "/SA_script_output/temp_output/", strsplit(x = strsplit(x = phyloName, split = "phylogenies/")[[1]][2], split = ".tre", fixed = T)[[1]][1], "_node_", h, "_randomTrait", ".csv", sep = ""), row.names = T)#
+#
+  		}    # Close else statement#
+	}    # Close node loop h#
+	# If there is only one phylogeny, write the output of the one phylogeny. Else rbind the output for all phylogenies#
+	if(j == 1) {node_moments <- foreach_out_j} else{node_moments <- rbind(node_moments, foreach_out_j)}#
+	# Output to inform progress  #
+	print(paste('Phylogeny Progress: ', j/length(sampleFiles)*100, "% done", sep = "") )#
+}    # Close phylogeny loop
+if(Sys.info()["user"]=="lauraj9897"){setwd('/Users/lauraj9897/Dropbox/trait_distribution_partitioning/South_Africa/')}
+node_moments <- append_node_info(node_moments = node_moments, community = community[which(community$species %in% phylogeny$tip.label), ]) #I think this works, running now
+source("SA_R_functions/append_node_info.R")
+node_moments <- append_node_info(node_moments = node_moments, community = community[which(community$species %in% phylogeny$tip.label), ]) #I think this works, running now
+names(node_moments)
+node_moments <- append_node_info(node_moments = node_moments, community = community[which(community$species %in% phylogeny$tip.label), ]) #I think this works, running now
+install.load.package <- function(x) {#
+  if (!require(x, character.only = TRUE))#
+    install.packages(x, repos='http://cran.us.r-project.org')#
+  require(x, character.only = TRUE)#
+}#
+package_vec <- c(#
+  "hypervolume",#
+  "car",#
+  "multcomp"#
+)#
+sapply(package_vec, install.load.package)
+`%nin%` <- Negate(`%in%`) # a function for negation of %in% function
+source("scripts/0_data_import.R") # sourcing data import script#
+traits_wide$ID <- paste(traits_wide$individual_uid, traits_wide$taxon, sep="_")
+setwd()
+setwd('/Users/lauraj9897/Dropbox/PFTC5-Intraspecific/')
+source("scripts/0_data_import.R") # sourcing data import script
+traits_wide$ID <- paste(traits_wide$individual_uid, traits_wide$taxon, sep="_")
+load(file.path("./data", "Hypervolumes.RData"))
+Vols_df <- data.frame(values = unlist(ID_vols),#
+                      ID = names(unlist(ID_vols))#
+)
+Vols_df$ID <- gsub(Vols_df$ID, pattern = ".untitled", replacement = "")#
+plot_df <- plyr::join(x = Vols_df, y = traits_df, by = "ID") %>%#
+			distinct(values, ID, .keep_all = TRUE) %>%#
+			filter(values != max(.$values)) # This filters out the outlier which is TRE_1_NA_Rhynchospora macrochaeta#
+#
+plot_df$taxon <- factor(plot_df$taxon, levels = c('Halenia umbellata', 'Lachemilla orbiculata', 'Paspalum bonplandianum', 'Rhynchospora macrochaeta', 'Gaultheria glomerata', 'Vaccinium floribundum'))#
+plot_df$functional_group <- as.factor(plot_df$functional_group)
+Vols_df$ID <- gsub(Vols_df$ID, pattern = ".untitled", replacement = "")
+plot_df <- plyr::join(x = Vols_df, y = traits_df, by = "ID") %>%#
+			distinct(values, ID, .keep_all = TRUE) %>%#
+			filter(values != max(.$values)) # This filters out the outlier which is TRE_1_NA_Rhynchospora macrochaeta
+source("scripts/0_data_import.R") # sourcing data import script
+traits_raw <- read.csv(file.path("data", "raw", "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv"),#
+                       header = T,#
+                       sep = ",") %>%#
+  filter(site %in% c("WAY", "ACJ", "TRE") &#
+           year == 2020 & treatment == "C")
+traits_raw <- read.csv(file.path("data", "raw", "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv"),#
+                       header = T,#
+                       sep = ",")
+traits_raw <- read.csv(file.path("data/raw/PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv"),#
+                       header = T,#
+                       sep = ",") %>%#
+  filter(site %in% c("WAY", "ACJ", "TRE") &#
+           year == 2020 & treatment == "C")
+install.load.package <- function(x) {#
+  if (!require(x, character.only = TRUE))#
+    install.packages(x, repos='http://cran.us.r-project.org')#
+  require(x, character.only = TRUE)#
+}#
+package_vec <- c(#
+  "tidyverse",#
+  "tidylog",#
+  "stringr",#
+  "here",#
+  "gsheet"#
+)#
+sapply(package_vec, install.load.package)#
+#
+if("dataDownloader" %in% rownames(installed.packages()) == FALSE){ # KrigR check#
+  devtools::install_github("Between-the-Fjords/dataDownloader")#
+}#
+library(dataDownloader)#
+### >> b) Data from osf ----#
+#
+dir.create("data")#
+dir.create("data/raw")#
+#
+#Download traits data from OSF#
+get_file(node = "gs8u6",#
+         file = "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv",#
+         path = "data/raw",#
+         remote_path = "traits")
+install.load.package <- function(x) {
+install.load.package <- function(x) {#
+  if (!require(x, character.only = TRUE))#
+    install.packages(x, repos='http://cran.us.r-project.org')#
+  require(x, character.only = TRUE)#
+}#
+package_vec <- c(#
+  "tidyverse",#
+  "tidylog",#
+  "stringr",#
+  "here",#
+  "gsheet"#
+)#
+sapply(package_vec, install.load.package)#
+#
+if("dataDownloader" %in% rownames(installed.packages()) == FALSE){ # KrigR check#
+  devtools::install_github("Between-the-Fjords/dataDownloader")#
+}#
+library(dataDownloader)
+dir.create("data")
+dir.create("data/raw")
+get_file(node = "gs8u6",#
+         file = "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv",#
+         path = "data/raw",#
+         remote_path = "traits")
+traits_raw <- read.csv(file.path("data", "raw", "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv"),#
+                       header = T,#
+                       sep = ",") %>%#
+  filter(site %in% c("WAY", "ACJ", "TRE") &#
+           year == 2020 & treatment == "C")
+install.load.package <- function(x) {#
+  if (!require(x, character.only = TRUE))#
+    install.packages(x, repos='http://cran.us.r-project.org')#
+  require(x, character.only = TRUE)#
+}#
+package_vec <- c(#
+  "hypervolume",#
+  "car",#
+  "multcomp"#
+)#
+sapply(package_vec, install.load.package)#
+#
+## Functionality ----------------------------------------------------------#
+`%nin%` <- Negate(`%in%`) # a function for negation of %in% function
+source("scripts/0_data_import.R") # sourcing data import script
+library(tidyverse)#
+library(tidylog)#
+if(!require(stringr)){        # for string operations#
+  install.packages("stringr")#
+  library(stringr)#
+}#
+library(here) #uses working directory as starting point for paths#
+library(gsheet)#
+#devtools::install_github("Between-the-Fjords/dataDownloader")#
+library(dataDownloader)
+dir.create("data")#
+dir.create("data/raw")#
+#
+#Download traits data from OSF#
+get_file(node = "gs8u6",#
+         file = "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv",#
+         path = "data/raw",#
+         remote_path = "traits")
+get_file(node = "gs8u6",#
+         file = "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv",#
+         path = "data/raw",#
+         remote_path = "traits")
+install.load.package <- function(x) {#
+  if (!require(x, character.only = TRUE))#
+    install.packages(x, repos='http://cran.us.r-project.org')#
+  require(x, character.only = TRUE)#
+}#
+package_vec <- c(#
+  "tidyverse",#
+  "tidylog",#
+  "stringr",#
+  "here",#
+  "gsheet"#
+)
+sapply(package_vec, install.load.package)
+if("dataDownloader" %in% rownames(installed.packages()) == FALSE){ # KrigR check#
+  devtools::install_github("Between-the-Fjords/dataDownloader")#
+}#
+library(dataDownloader)
+dir.create("data")
+dir.create("data")
+dir.create("data/raw")
+get_file(node = "gs8u6",#
+         file = "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv",#
+         path = "data/raw",#
+         remote_path = "traits")
+library(rlang)
+rlang::last_error()

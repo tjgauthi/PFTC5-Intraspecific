@@ -173,6 +173,7 @@ taxon.comps <- list(c("Gaultheria glomerata", "Halenia umbellata"), c("Gaultheri
                     c("Paspalum bonplandianum", "Rhynchospora macrochaeta"), c("Paspalum bonplandianum", "Vaccinium floribundum"),
                     c("Rhynchospora macrochaeta", "Vaccinium floribundum")
 )
+
 taxon.boxplot1 <- ggplot(plot_df, aes(y = values, x = taxon, fill = taxon)) +
   geom_boxplot() + 
   scale_fill_manual(values = pal_lm) +
@@ -180,16 +181,16 @@ taxon.boxplot1 <- ggplot(plot_df, aes(y = values, x = taxon, fill = taxon)) +
   my_theme +
   ylab('Hypervolume Size') + xlab('Taxon') + labs(fill = 'Species') +
   facet_wrap(~site) + 
-  theme(axis.text.x=element_blank(),
-        axis.ticks.x=element_blank() 
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        	text = element_text(size = 16),
+        	legend.title = element_text(size = 14), 
+    		legend.text = element_text(size = 12) 
   )
+  
 print(taxon.boxplot1)
-
-taxon.lm <- lm(values ~ 0 + taxon, data = plot_df) # fit isn't great, but I've seen worse
-taxon.results <- car::Anova(taxon.lm, type = 2)
-taxon.r2 <- summary(taxon.lm)$adj.r.squared
-taxon.posthoc.stats <- get_posthoc_stats(model = taxon.lm, group_var = 'taxon') # This needs to be trimmed down to only comparisons of taxon WITHIN a functional group
-taxon.posthoc.letters <- get_letters(model = taxon.lm, group_var = 'taxon')
+ggsave('taxon.boxplot1.png', taxon.boxplot1, units = 'in', height = 5.5, width = 11.4, dpi = 600)
+ggsave('taxon.boxplot1.pdf', taxon.boxplot1, units = 'in', height = 5.5, width = 11.4, dpi = 600)
 
 ### Volume comparison by functional groups -----
 print("Volume by functional group")
@@ -197,18 +198,21 @@ fg.comps <- list(c("Forb", "Graminoid"), c("Graminoid", "Woody"), c("Forb", "Woo
 taxon.boxplot2 <- ggplot(plot_df, aes(y = values, x = functional_group, fill = taxon)) +
   geom_boxplot() + 
   scale_fill_manual(values = pal_lm) +
-  stat_compare_means(comparisons = fg.comps, method = 't.test', label = 'p.signif') +
-  stat_compare_means(aes(group = taxon), label = 'p.signif', label.y = c(5, 9, 7.5)) +
+  stat_compare_means(comparisons = fg.comps, method = 't.test', label = 'p.signif', size = 5) +
+  stat_compare_means(aes(group = taxon), label = 'p.signif', label.y = c(5, 9, 7.5), size = 5) +
   my_theme +
   ylab('Hypervolume Size') + xlab('Functional Group') + labs(fill = 'Species') +
-  facet_wrap(~site)
+  ylim(0, 15) +
+  facet_wrap(~site) +
+  theme(text = element_text(size = 16),
+        	legend.title = element_text(size = 14), 
+    		legend.text = element_text(size = 12) 
+  )
+  
 print(taxon.boxplot2)
+ggsave('taxon.boxplot2.png', taxon.boxplot2, units = 'in', height = 5.5, width = 11.4, dpi = 600)
+ggsave('taxon.boxplot2.pdf', taxon.boxplot2, units = 'in', height = 5.5, width = 11.4, dpi = 600)
 
-fg.lm <- lm(values ~ 0 + functional_group, data = plot_df) # fit isn't great, but I've seen worse
-fg.results <- car::Anova(fg.lm, type = 2)
-fg.r2 <- summary(fg.lm)$adj.r.squared
-fg.posthoc.stats <- get_posthoc_stats(model = fg.lm, group_var = 'functional_group')
-fg.posthoc.letters <- get_letters(model = fg.lm, group_var = 'functional_group')
 
 ### Volume comparison by elevation -----
 print("Volume by elevation")
@@ -217,15 +221,14 @@ taxon.scatterplot <- ggplot(plot_df, aes(y = values, x = elevation, color = taxo
   geom_smooth(method = 'lm', formula = y~x + I(x^2), se = F) +
   scale_color_manual(values = pal_lm) +
   my_theme +
-  ylab('Hypervolume Size') + xlab('Elevation (MASL)') + labs(fill = 'Species')
+  ylab('Hypervolume Size') + xlab('Elevation (mASL)') + labs(color = 'Species') +
+  theme(text = element_text(size = 16),
+  		legend.title = element_text(size = 14), 
+    		legend.text = element_text(size = 12) 
+  )
 print(taxon.scatterplot)
-
-elevation.lm <- lm(values ~ elevation, data = plot_df) # fit isn't great, but I've seen worse
-elevation.results <- summary(elevation.lm)$coefficients %>%
-  data.frame %>%
-  rownames_to_column('Effect') %>%
-  mutate(adj.r2 = c(NA, summary(elevation.lm)$adj.r.squared)) %>%
-  dplyr::rename('SE' = Std..Error, 'p.value' = 'Pr...t..')
+ggsave('taxon.scatterplot.png', taxon.scatterplot, units = 'in', height = 4.7, width = 7.4, dpi = 600)
+ggsave('taxon.scatterplot.pdf', taxon.scatterplot, units = 'in', height = 4.7, width = 7.4, dpi = 600)
 
 ## Overlap of Volumes -----------------------------------------------------
 print("Hypervolume overlap")
@@ -252,15 +255,22 @@ plot_df$value[4:5] <- plot_df$value[4:5]-plot_df$value[6]/2
 plot_df$value[7:8] <- plot_df$value[7:8]-plot_df$value[9]/2
 plot_df$sp <- factor(plot_df$sp, levels=c("Halenia umbellata", "Paspalum bonplandianum", "Gaultheria glomerata", 
                                           "Overlap", 
-                                          "Lachemilla orbiculata", "Rhynchospora macrochaeta", "Vaccinium floribundum"))
+                                          "Lachemilla orbiculata", "Rhynchospora macrochaeta", "Vaccinium floribundum"
+                                          ))
+
 ### plot it out
-gplot <- ggplot(plot_df, aes(x = fg, y = value, fill = sp, label = sp)) + 
+overlap.plot <- ggplot(plot_df, aes(x = fg, y = value, fill = sp, label = sp)) + 
   geom_bar(position="stack", stat="identity") + 
-  geom_text(size = 3, position = position_stack(vjust = 0.6)) + 
+  geom_text(size = 5, position = position_stack(vjust = 0.6), family = 'Helvetica', fontface = rep(c('italic', 'italic', 'plain'), 3)) + 
   scale_fill_manual(values = c(pal_lm[c(1,3,5)], "#808080", pal_lm[c(2,4,6)])) +
   my_theme +
-  theme(legend.position = "none") + labs(x = "Functional Group", y = "Hypervolume Size")
-print(gplot)
+  labs(x = "Functional Group", y = "Hypervolume Size") +
+  theme(legend.position = "none",
+  		text = element_text(size = 16)
+  		) 
+print(overlap.plot)
+ggsave('overlap.plot.png', overlap.plot, units = 'in', height = 7, width = 7, dpi = 600)
+ggsave('overlap.plot.pdf', overlap.plot, units = 'in', height = 7, width = 7, dpi = 600)
 
 ## Linear Mixed Effect Model of Volume Size -------------------------------
 print("Hypervolume linear mixed effect model")
@@ -295,3 +305,5 @@ print(car::Anova(hv.fg.model, type = 3))
 print("taxon comparison ----")
 taxon.comparisons <- emmeans(hv.taxon.model, list(pairwise ~ taxon), adjust = "tukey")
 print(taxon.comparisons)
+fg.comparisons <- emmeans(hv.fg.model, list(pairwise ~ functional_group), adjust = "tukey")
+print(fg.comparisons)
