@@ -183,11 +183,11 @@ taxon.boxplot1 <- ggplot(plot_df, aes(y = values, x = taxon, fill = taxon)) +
   facet_wrap(~site) + 
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
-        	text = element_text(size = 16),
-        	legend.title = element_text(size = 14), 
-    		legend.text = element_text(size = 12) 
+        text = element_text(size = 16),
+        legend.title = element_text(size = 14), 
+        legend.text = element_text(size = 12) 
   )
-  
+
 print(taxon.boxplot1)
 ggsave('taxon.boxplot1.png', taxon.boxplot1, units = 'in', height = 5.5, width = 11.4, dpi = 600)
 ggsave('taxon.boxplot1.pdf', taxon.boxplot1, units = 'in', height = 5.5, width = 11.4, dpi = 600)
@@ -205,10 +205,10 @@ taxon.boxplot2 <- ggplot(plot_df, aes(y = values, x = functional_group, fill = t
   ylim(0, 15) +
   facet_wrap(~site) +
   theme(text = element_text(size = 16),
-        	legend.title = element_text(size = 14), 
-    		legend.text = element_text(size = 12) 
+        legend.title = element_text(size = 14), 
+        legend.text = element_text(size = 12) 
   )
-  
+
 print(taxon.boxplot2)
 ggsave('taxon.boxplot2.png', taxon.boxplot2, units = 'in', height = 5.5, width = 11.4, dpi = 600)
 ggsave('taxon.boxplot2.pdf', taxon.boxplot2, units = 'in', height = 5.5, width = 11.4, dpi = 600)
@@ -223,8 +223,8 @@ taxon.scatterplot <- ggplot(plot_df, aes(y = values, x = elevation, color = taxo
   my_theme +
   ylab('Hypervolume Size') + xlab('Elevation (mASL)') + labs(color = 'Species') +
   theme(text = element_text(size = 16),
-  		legend.title = element_text(size = 14), 
-    		legend.text = element_text(size = 12) 
+        legend.title = element_text(size = 14), 
+        legend.text = element_text(size = 12) 
   )
 print(taxon.scatterplot)
 ggsave('taxon.scatterplot.png', taxon.scatterplot, units = 'in', height = 4.7, width = 7.4, dpi = 600)
@@ -253,21 +253,25 @@ plot_df <- data.frame(sp = c(Grouping_df$taxon[Grouping_df$functional_group == "
 plot_df$value[3] <- plot_df$value[3]*sum(plot_df$value[1:2])
 plot_df$value[6] <- plot_df$value[6]*sum(plot_df$value[4:5])
 plot_df$value[9] <- plot_df$value[9]*sum(plot_df$value[7:8])
-plot_df$sp <- factor(plot_df$sp, levels=c("Halenia umbellata", "Paspalum bonplandianum", "Gaultheria glomerata", 
+plot_df$sp <- c("H. umbellata", "L. orbiculata", "Overlap", 
+                "P. bonplandianum", "R. macrochaeta", "Overlap",
+                "G. glomerata", "V. floribundum", "Overlap"
+)
+plot_df$sp <- factor(plot_df$sp, levels=c("H. umbellata", "P. bonplandianum", "G. glomerata", 
                                           "Overlap", 
-                                          "Lachemilla orbiculata", "Rhynchospora macrochaeta", "Vaccinium floribundum"
-                                          ))
+                                          "L. orbiculata", "R. macrochaeta", "V. floribundum"
+))
 
 ### plot it out
 overlap.plot <- ggplot(plot_df, aes(x = fg, y = value, fill = sp, label = sp)) + 
   geom_bar(position="stack", stat="identity") + 
-  geom_text(size = 3, position = position_stack(vjust = 0.6), family = 'Helvetica', fontface = rep(c('italic', 'italic', 'plain'), 3)) + 
+  geom_text(size = 5, position = position_stack(vjust = 0.6), family = 'Helvetica', fontface = rep(c('italic', 'italic', 'plain'), 3)) + 
   scale_fill_manual(values = c(pal_lm[c(1,3,5)], "#808080", pal_lm[c(2,4,6)])) +
   my_theme +
   labs(x = "Functional Group", y = "Hypervolume Size") +
   theme(legend.position = "none",
-  		text = element_text(size = 16)
-  		) 
+        text = element_text(size = 16)
+  ) 
 print(overlap.plot)
 ggsave('overlap.plot.png', overlap.plot, units = 'in', height = 7, width = 7, dpi = 600)
 ggsave('overlap.plot.pdf', overlap.plot, units = 'in', height = 7, width = 7, dpi = 600)
