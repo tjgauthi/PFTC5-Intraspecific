@@ -374,17 +374,17 @@ dev.off()
 
 
 # Compute CV for each trait for each plot
-trait_cvs = traits %>% 
+trait_cvs_plot = traits %>% 
   group_by(site, plot_id, functional_group, family, taxon, trait, elevation) %>% 
   summarize(cv_trait = cv(value)) %>% 
   subset(cv_trait != 0) # chop zeroes - won't play nice later
 
 # Reorganize as wide data - easier for what follows
-trait_cvs_wide = spread(trait_cvs, key = trait, value = cv_trait)
+trait_cvs_wide_plot = spread(trait_cvs_plot, key = trait, value = cv_trait)
 
-mod_CVheight1 = lmer(log(plant_height_cm) ~ scale(elevation) * taxon + (1|site),
-                     data = trait_cvs_wide,
-                     na.action = na.omit)
+# mod_CVheight1 = lmer(log(plant_height_cm) ~ scale(elevation) * taxon + (1|site),
+#                      data = trait_cvs_wide_plot,
+#                      na.action = na.omit)
 ##### SINGULAR - note most of the plant_height CVs are zero b/c measured on the
 ##### same individuals.
 
@@ -398,56 +398,78 @@ mod_CVheight1 = lmer(log(plant_height_cm) ~ scale(elevation) * taxon + (1|site),
 #                   na.action = na.omit)
 # OK
 
-mod_CVdry_mass1 = lmer(log(dry_mass_g) ~ scale(elevation) * taxon + (1|site),
-                       data = trait_cvs_wide,
-                       na.action = na.omit)
+# mod_CVdry_mass1 = lmer(log(dry_mass_g) ~ scale(elevation) * taxon + (1|site),
+#                        data = trait_cvs_wide_plot,
+#                        na.action = na.omit)
+# # OK
+# 
+# #mod_CVarea1 = lmer(leaf_area_cm2 ~ scale(elevation) * taxon + (1|site/plot_id),
+# #                   data = trait_cvs_wide,
+# #                   na.action = na.omit)
+# ##### SINGULAR
+# 
+# mod_CVarea1 = lmer(log(leaf_area_cm2) ~ scale(elevation) * taxon + (1|site),
+#                    data = trait_cvs_wide_plot,
+#                    na.action = na.omit)
+# # OK
+# 
+# #mod_CVsla1 = lmer(sla_cm2_g ~ scale(elevation) * taxon + (1|site/plot_id),
+# #                   data = trait_cvs_wide,
+# #                   na.action = na.omit)
+# ##### SINGULAR
+# mod_CVsla1 = lmer(log(sla_cm2_g) ~ scale(elevation) * taxon + (1|site),
+#                   data = trait_cvs_wide_plot,
+#                   na.action = na.omit)
+# # OK
+# 
+# #mod_CVldmc1 = lmer(ldmc ~ scale(elevation) * taxon + (1|site/plot_id),
+# #                   data = trait_cvs_wide,
+# #                   na.action = na.omit)
+# ##### SINGULAR
+# mod_CVldmc1 = lmer(log(ldmc) ~ scale(elevation) * taxon + (1|site),
+#                    data = trait_cvs_wide_plot,
+#                    na.action = na.omit)
+# 
+# #mod_CVthickness1 = lmer(leaf_thickness_mm ~ scale(elevation) * taxon + (1|site/plot_id),
+# #                 data = trait_cvs_wide,
+# #                 na.action = na.omit)
+# ##### SINGULAR
+# mod_CVthickness1 = lmer(log(leaf_thickness_mm) ~ scale(elevation) * taxon + (1|site),
+#                         data = trait_cvs_wide_plot,
+#                         na.action = na.omit)
 # OK
 
-#mod_CVarea1 = lmer(leaf_area_cm2 ~ scale(elevation) * taxon + (1|site/plot_id),
-#                   data = trait_cvs_wide,
-#                   na.action = na.omit)
-##### SINGULAR
 
-mod_CVarea1 = lmer(log(leaf_area_cm2) ~ scale(elevation) * taxon + (1|site),
-                   data = trait_cvs_wide,
-                   na.action = na.omit)
-# OK
-
-#mod_CVsla1 = lmer(sla_cm2_g ~ scale(elevation) * taxon + (1|site/plot_id),
-#                   data = trait_cvs_wide,
-#                   na.action = na.omit)
-##### SINGULAR
-mod_CVsla1 = lmer(log(sla_cm2_g) ~ scale(elevation) * taxon + (1|site),
-                  data = trait_cvs_wide,
-                  na.action = na.omit)
-# OK
-
-#mod_CVldmc1 = lmer(ldmc ~ scale(elevation) * taxon + (1|site/plot_id),
-#                   data = trait_cvs_wide,
-#                   na.action = na.omit)
-##### SINGULAR
-mod_CVldmc1 = lmer(log(ldmc) ~ scale(elevation) * taxon + (1|site),
-                   data = trait_cvs_wide,
-                   na.action = na.omit)
-
-#mod_CVthickness1 = lmer(leaf_thickness_mm ~ scale(elevation) * taxon + (1|site/plot_id),
-#                 data = trait_cvs_wide,
-#                 na.action = na.omit)
-##### SINGULAR
-mod_CVthickness1 = lmer(log(leaf_thickness_mm) ~ scale(elevation) * taxon + (1|site),
-                        data = trait_cvs_wide,
+mod_CVplot_height1 = lm(log(plant_height_cm) ~ scale(elevation) * taxon,
+                                           data = trait_cvs_wide_plot,
+                                           na.action = na.omit)
+mod_CVplot_dry_mass1 = lm(log(dry_mass_g) ~ scale(elevation) * taxon,
+                        data = trait_cvs_wide_plot,
                         na.action = na.omit)
-# OK
+mod_CVplot_area1 = lm(log(leaf_area_cm2) ~ scale(elevation) * taxon,
+                        data = trait_cvs_wide_plot,
+                        na.action = na.omit)
+mod_CVplot_sla1 = lm(log(sla_cm2_g) ~ scale(elevation) * taxon,
+                        data = trait_cvs_wide_plot,
+                        na.action = na.omit)
+mod_CVplot_ldmc1 = lm(log(ldmc) ~ scale(elevation) * taxon,
+                        data = trait_cvs_wide_plot,
+                        na.action = na.omit)
+mod_CVplot_thickness1 = lm(log(leaf_thickness_mm) ~ scale(elevation) * taxon,
+                        data = trait_cvs_wide_plot,
+                        na.action = na.omit)
+
+
 
 
 # Generate model predictions
-cv_pred = trait_cvs_wide[,1:7]
-cv_pred$CVheight = predict(mod_CVheight1, re.form=NA, newdata=cv_pred)
-cv_pred$CVdry_mass = predict(mod_CVdry_mass1, re.form=NA, newdata=cv_pred)
-cv_pred$CVarea = predict(mod_CVarea1, re.form=NA, newdata=cv_pred)
-cv_pred$CVsla = predict(mod_CVsla1, re.form=NA, newdata=cv_pred)
-cv_pred$CVldmc = predict(mod_CVldmc1, re.form=NA, newdata=cv_pred)
-cv_pred$CVthickness = predict(mod_CVthickness1, re.form=NA, newdata=cv_pred)
+cv_pred = trait_cvs_wide_plot[,1:7]
+cv_pred$CVheight = predict(mod_CVplot_height1, re.form=NA, newdata=cv_pred)
+cv_pred$CVdry_mass = predict(mod_CVplot_dry_mass1, re.form=NA, newdata=cv_pred)
+cv_pred$CVarea = predict(mod_CVplot_area1, re.form=NA, newdata=cv_pred)
+cv_pred$CVsla = predict(mod_CVplot_sla1, re.form=NA, newdata=cv_pred)
+cv_pred$CVldmc = predict(mod_CVplot_ldmc1, re.form=NA, newdata=cv_pred)
+cv_pred$CVthickness = predict(mod_CVplot_thickness1, re.form=NA, newdata=cv_pred)
 
 
 # Build panels
@@ -533,6 +555,75 @@ p_CVthickness <- ggplot(data = cv_pred, aes(x = elevation, y = (CVthickness), co
 pdf("cv_plot_fig.pdf", width=6, height=4)
 grid.arrange(p_CVheight, p_CVdrymass, p_CVarea, p_CVsla, p_CVldmc,p_CVthickness, nrow =2)
 dev.off()
+
+
+
+
+
+#
+# Draft of an overview figure
+#
+
+
+# Pull slope values associated with each trait and species
+# species trait slope
+
+
+slopes.cv.ind = data.frame(species = rep(rel_sp[c(1,5,6,2,4,3)],6),
+                           trait = c(rep("area", 6),rep("dry_mass", 6),rep("height", 6),rep("ldmc", 6),rep("sla", 6),rep("thickness", 6)),
+                           slope = c(coef(summary(mod_CVarea1))[,"Estimate"][c(2,8:12)],
+                                     coef(summary(mod_CVdry_mass1))[,"Estimate"][c(2,8:12)],
+                                     coef(summary(mod_CVheight1))[,"Estimate"][c(2,8:12)],
+                                     coef(summary(mod_CVldmc1))[,"Estimate"][c(2,8:12)],
+                                     coef(summary(mod_CVsla1))[,"Estimate"][c(2,8:12)],
+                                     coef(summary(mod_CVthickness1))[,"Estimate"][c(2,8:12)]))
+
+
+
+slopes.gago = subset(slopes.cv.ind, species == "Gaultheria glomerata")
+slopes.others = subset(slopes.cv.ind, species != "Gaultheria glomerata")
+
+slopes.cv.ind = merge(slopes.others, slopes.gago %>% select(-species), by=c( "trait")) %>% 
+  mutate(slope = slope.x+slope.y) %>% select(-slope.x,-slope.y) %>% 
+  bind_rows(slopes.gago)
+
+
+
+slopes.cv.plot = data.frame(species = rep(rel_sp[c(1,5,6,2,4,3)],6),
+                            trait = c(rep("area", 6),rep("dry_mass", 6),rep("height", 6),rep("ldmc", 6),rep("sla", 6),rep("thickness", 6)),
+                            slope = c(coef(summary(mod_CVplot_area1))[,"Estimate"][c(2,8:12)],
+                                      coef(summary(mod_CVplot_dry_mass1))[,"Estimate"][c(2,8:12)],
+                                      coef(summary(mod_CVplot_height1))[,"Estimate"][c(2,8:12)],
+                                      coef(summary(mod_CVplot_ldmc1))[,"Estimate"][c(2,8:12)],
+                                      coef(summary(mod_CVplot_sla1))[,"Estimate"][c(2,8:12)],
+                                      coef(summary(mod_CVplot_thickness1))[,"Estimate"][c(2,8:12)]))
+
+
+slopes.gago = subset(slopes.cv.plot, species == "Gaultheria glomerata")
+slopes.others = subset(slopes.cv.plot, species != "Gaultheria glomerata")
+
+slopes.cv.plot = merge(slopes.others, slopes.gago %>% select(-species), by=c( "trait")) %>% 
+  mutate(slope = slope.x+slope.y) %>% select(-slope.x,-slope.y) %>% 
+  bind_rows(slopes.gago)
+
+
+p = ggplot(slopes.cv.ind, aes(y = trait, x = slope, color = species)) +
+  geom_point(pch = "|",size = 6,position = position_nudge(y = 0.2)) +
+  geom_point(data=slopes.cv.plot, pch="|", size=6,position = position_nudge(y=-0.2)) +
+  scale_color_manual(values = pal_lm) +
+  my_theme +
+  geom_vline(xintercept = 0, lty = 2) +
+  xlim(-0.3,0.5) +
+  geom_hline(yintercept = 1:6) +
+  theme(axis.title.y = element_blank())
+
+pdf("plot_overview.pdf", 4,4)
+p
+dev.off()
+
+
+
+
 
 
 
