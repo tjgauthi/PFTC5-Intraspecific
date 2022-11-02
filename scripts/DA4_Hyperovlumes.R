@@ -250,9 +250,9 @@ plot_df <- data.frame(sp = c(Grouping_df$taxon[Grouping_df$functional_group == "
                       ),
                       sp2 = rep(c("sp1", "sp2", "Overlap"), 3)
 )
-plot_df$value[1:2] <- plot_df$value[1:2]-plot_df$value[3]/2
-plot_df$value[4:5] <- plot_df$value[4:5]-plot_df$value[6]/2
-plot_df$value[7:8] <- plot_df$value[7:8]-plot_df$value[9]/2
+plot_df$value[3] <- plot_df$value[3]*sum(plot_df$value[1:2])
+plot_df$value[6] <- plot_df$value[6]*sum(plot_df$value[4:5])
+plot_df$value[9] <- plot_df$value[9]*sum(plot_df$value[7:8])
 plot_df$sp <- factor(plot_df$sp, levels=c("Halenia umbellata", "Paspalum bonplandianum", "Gaultheria glomerata", 
                                           "Overlap", 
                                           "Lachemilla orbiculata", "Rhynchospora macrochaeta", "Vaccinium floribundum"
@@ -261,7 +261,7 @@ plot_df$sp <- factor(plot_df$sp, levels=c("Halenia umbellata", "Paspalum bonplan
 ### plot it out
 overlap.plot <- ggplot(plot_df, aes(x = fg, y = value, fill = sp, label = sp)) + 
   geom_bar(position="stack", stat="identity") + 
-  geom_text(size = 5, position = position_stack(vjust = 0.6), family = 'Helvetica', fontface = rep(c('italic', 'italic', 'plain'), 3)) + 
+  geom_text(size = 3, position = position_stack(vjust = 0.6), family = 'Helvetica', fontface = rep(c('italic', 'italic', 'plain'), 3)) + 
   scale_fill_manual(values = c(pal_lm[c(1,3,5)], "#808080", pal_lm[c(2,4,6)])) +
   my_theme +
   labs(x = "Functional Group", y = "Hypervolume Size") +
@@ -284,11 +284,11 @@ WoodGram_ov <- FUN.Overlap(functional_group_hv, c("Woody", "Graminoid"))
 
 ## report overlaps
 message("Forb + Graminoid")
-ForbGram_ov/(functional_group_vols$Forb + functional_group_vols$Graminoid)
+ForbGram_ov
 message("Forb + Woody")
-ForbWood_ov/(functional_group_vols$Forb + functional_group_vols$Woody)
+ForbWood_ov
 message("Graminoid + Woody")
-WoodGram_ov/(functional_group_vols$Graminoid + functional_group_vols$Woody)
+WoodGram_ov
 
 ## Linear Mixed Effect Model of Volume Size -------------------------------
 print("Hypervolume linear mixed effect model")
