@@ -642,12 +642,8 @@ pval.traits = data.frame(area = anova(mod_area1)$`Pr(>F)`,
            thickness = anova(mod_thickness1)$`Pr(>F)`)
 
 rownames(pval.traits) =  c("scale(elevation)", "taxon", "scale(elevation):taxon")
-<<<<<<< HEAD
+
 write.csv(pval.traits, "pval.traits.csv")
-=======
-
->>>>>>> f35621cab0b1873a22f35c23cfc809f1cdbbbb47
-
 
 
 pval.CV.ind = data.frame(area = anova(mod_CVarea1)$`Pr(>F)`,
@@ -658,11 +654,8 @@ pval.CV.ind = data.frame(area = anova(mod_CVarea1)$`Pr(>F)`,
                          thickness = anova(mod_CVthickness1)$`Pr(>F)`)
 
 rownames(pval.CV.ind) =  c("scale(elevation)", "taxon", "scale(elevation):taxon")
-<<<<<<< HEAD
-write.csv(pval.traits, "pval.CV.ind.csv")
-=======
 
->>>>>>> f35621cab0b1873a22f35c23cfc809f1cdbbbb47
+write.csv(pval.traits, "pval.CV.ind.csv")
 
 
 
@@ -674,11 +667,9 @@ pval.CV.plot = data.frame(area = anova(mod_area1)$`Pr(>F)`,
                          thickness = anova(mod_thickness1)$`Pr(>F)`)
 
 rownames(pval.CV.plot) =  c("scale(elevation)", "taxon", "scale(elevation):taxon")
-<<<<<<< HEAD
-write.csv(pval.traits, "pval.CV.plot.csv")
-=======
 
->>>>>>> f35621cab0b1873a22f35c23cfc809f1cdbbbb47
+write.csv(pval.traits, "pval.CV.plot.csv")
+
 
 
 
