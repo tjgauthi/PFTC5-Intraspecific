@@ -14,6 +14,7 @@ library(lme4)
 library(ggplot2)
 #library(effects)
 library(gridExtra)
+library(lmerTest)
 
 # Plotting theme
 my_theme = theme_bw() + 
@@ -624,6 +625,48 @@ dev.off()
 
 
 
+
+
+
+#
+# Generate data table with p values (do we also need parameter estimates?)
+#
+
+
+
+pval.traits = data.frame(area = anova(mod_area1)$`Pr(>F)`,
+           dry_mass = anova(mod_dry_mass1)$`Pr(>F)`,
+           height = anova(mod_height1)$`Pr(>F)`,
+           ldmc = anova(mod_ldmc1)$`Pr(>F)`,
+           sla = anova(mod_sla1)$`Pr(>F)`,
+           thickness = anova(mod_thickness1)$`Pr(>F)`)
+
+rownames(pval.traits) =  c("scale(elevation)", "taxon", "scale(elevation):taxon")
+write.csv(pval.traits, "pval.traits.csv")
+
+
+
+pval.CV.ind = data.frame(area = anova(mod_CVarea1)$`Pr(>F)`,
+                         dry_mass = anova(mod_CVdry_mass1)$`Pr(>F)`,
+                         height = anova(mod_CVheight1)$`Pr(>F)`,
+                         ldmc = anova(mod_CVldmc1)$`Pr(>F)`,
+                         sla = anova(mod_CVsla1)$`Pr(>F)`,
+                         thickness = anova(mod_CVthickness1)$`Pr(>F)`)
+
+rownames(pval.CV.ind) =  c("scale(elevation)", "taxon", "scale(elevation):taxon")
+write.csv(pval.traits, "pval.CV.ind.csv")
+
+
+
+pval.CV.plot = data.frame(area = anova(mod_area1)$`Pr(>F)`,
+                         dry_mass = anova(mod_dry_mass1)$`Pr(>F)`,
+                         height = anova(mod_height1)$`Pr(>F)`,
+                         ldmc = anova(mod_ldmc1)$`Pr(>F)`,
+                         sla = anova(mod_sla1)$`Pr(>F)`,
+                         thickness = anova(mod_thickness1)$`Pr(>F)`)
+
+rownames(pval.CV.plot) =  c("scale(elevation)", "taxon", "scale(elevation):taxon")
+write.csv(pval.traits, "pval.CV.plot.csv")
 
 
 
