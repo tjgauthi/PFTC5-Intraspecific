@@ -50,7 +50,7 @@ get_file(node = "gs8u6",
 # traits data - complete
 traits_raw <- read.csv(file.path("data", "raw", "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv"),
                        header = T,
-                       sep = ",") %>%
+                       sep = ",") |> 
   filter(site %in% c("WAY", "ACJ", "TRE") &
            year == 2020 & treatment == "C")
 #skim(traits_raw)
@@ -75,11 +75,11 @@ rm('traits_raw')
 ### 3) Data Structuring ----
 
 #removing obsolete columns after filtering
-traits<-traits %>% 
+traits<-traits |>  
   select (-c(year,season,month,treatment,burn_year,latitude,longitude,course))
 
 #Transform from long to wide format
-traits_wide<-traits %>%
+traits_wide<-traits |> 
   pivot_wider(names_from = trait, values_from = value)
 
 #adding unique plot, individual, and leaf
