@@ -50,25 +50,22 @@ get_file(node = "gs8u6",
 # traits data - complete
 traits_raw <- read.csv(file.path("data", "raw", "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv"),
                        header = T,
-                       sep = ",") %>%
+                       sep = ",") |> 
   filter(site %in% c("WAY", "ACJ", "TRE") &
            year == 2020 & treatment == "C")
-
 #skim(traits_raw)
 
 
 ### 2) Data filtering ----
 
-# Relevant species only
-unique(traits_raw$taxon)
-rel_sp <- c("Gaultheria glomerata","Paspalum bonplandianum",
-            "Vaccinium floribundum","Rhynchospora macrochaeta",
-            # These were new substitutes
-            # Check other docs for consistancy
-            "Halenia umbellata", "Lachemilla orbiculata") 
+traits <- traits_raw |> 
+  #Select the intraspecific species
+  filter(taxon %in% c("Gaultheria glomerata", "Rhynchospora macrochaeta", "Vaccinium floribundum", "Halenia umbellata", "Lachemilla orbiculata", "Paspalum bonplandianum")) |>
+  #Removing all individuals of these species that were not sampled with the ITV method (several leaves per individual)
+  filter(!is.na(leaf_id)) |>  
+  #Those that we can not confirm is wrong, but most likely does not belong in the ITV dataset
+  filter(!id %in% c("COI1685", "BUS1756", "CMR2436", "AUB2849", "AAF7186", "BZH3536"))
 
-traits <- traits_raw %>%
-  filter(taxon %in% rel_sp) 
 
 unique(traits$taxon)
 
@@ -78,16 +75,17 @@ rm('traits_raw')
 ### 3) Data Structuring ----
 
 #removing obsolete columns after filtering
-traits<-traits %>% 
+traits<-traits |>  
   select (-c(year,season,month,treatment,burn_year,latitude,longitude,course))
 
 #Transform from long to wide format
-traits_wide<-traits %>%
+traits_wide<-traits |> 
   pivot_wider(names_from = trait, values_from = value)
 
 #adding unique plot, individual, and leaf
-traits_wide$plot_uid <- paste(traits_wide$site,traits_wide$plot_id, sep = "_")
-traits_wide$individual_uid <- paste(traits_wide$site,traits_wide$plot_id, traits_wide$individual_nr, sep = "_")
-traits_wide$leaf_uid <- paste(traits_wide$site,traits_wide$plot_id, traits_wide$individual_nr, traits_wide$id, sep = "_")
+traits_wide <- traits_wide |> 
+  mutate(plot_uid = paste(site, plot_id, sep = "_"),
+         individual_uid = paste(site, taxon, plot_id, individual_nr, sep = "_"),
+         leaf_uid = paste(site, taxon, plot_id, individual_nr, leaf_id, sep = "_"))
 
 # End of script ----
