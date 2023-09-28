@@ -82,7 +82,7 @@ mod_thickness1 <- lmer(ln_thickness ~ scale(elevation) * taxon + (1|site/plot_id
 
 
 # Generate model predictions
-lm_pred = traits_wide_lm[,1:8] %>% 
+lm_pred = traits_wide_lm[,1:9] %>% 
   mutate(ln_height = predict(mod_height1, re.form=NA, newdata=.),
          ln_dry_mass = predict(mod_dry_mass1, re.form=NA, newdata=.),
          ln_area = predict(mod_area1, re.form=NA, newdata=.),
@@ -475,7 +475,7 @@ cv_pred$CVthickness = predict(mod_CVplot_thickness1, re.form=NA, newdata=cv_pred
 
 # Build panels
 p_CVheight <- ggplot(data = cv_pred, aes(x = elevation, y = (CVheight), color = taxon)) +
-  geom_jitter(data = (trait_cvs_wide), 
+  geom_jitter(data = (trait_cvs_wide_plot), 
               aes(x = elevation, y = log(plant_height_cm)), 
               width = 10, 
               size = 0.1,
@@ -488,7 +488,7 @@ p_CVheight <- ggplot(data = cv_pred, aes(x = elevation, y = (CVheight), color = 
   ylab("ln(CV Height)")
 
 p_CVdrymass <- ggplot(data = cv_pred, aes(x = elevation, y = (CVdry_mass), color = taxon)) +
-  geom_jitter(data = (trait_cvs_wide), 
+  geom_jitter(data = (trait_cvs_wide_plot), 
               aes(x = elevation, y = log(dry_mass_g)), 
               width = 10, 
               size = 0.1,
@@ -501,7 +501,7 @@ p_CVdrymass <- ggplot(data = cv_pred, aes(x = elevation, y = (CVdry_mass), color
   ylab("ln(CV Dry mass)")
 
 p_CVarea <- ggplot(data = cv_pred, aes(x = elevation, y = (CVarea), color = taxon)) +
-  geom_jitter(data = (trait_cvs_wide), 
+  geom_jitter(data = (trait_cvs_wide_plot), 
               aes(x = elevation, y = log(leaf_area_cm2)), 
               width = 10, 
               size = 0.1,
@@ -514,7 +514,7 @@ p_CVarea <- ggplot(data = cv_pred, aes(x = elevation, y = (CVarea), color = taxo
   ylab("ln(CV Leaf area)")
 
 p_CVsla <- ggplot(data = cv_pred, aes(x = elevation, y = (CVsla), color = taxon)) +
-  geom_jitter(data = (trait_cvs_wide), 
+  geom_jitter(data = (trait_cvs_wide_plot_plot), 
               aes(x = elevation, y = log(sla_cm2_g)), 
               width = 10, 
               size = 0.1,
@@ -527,7 +527,7 @@ p_CVsla <- ggplot(data = cv_pred, aes(x = elevation, y = (CVsla), color = taxon)
   ylab("ln(CV SLA)")
 
 p_CVldmc <- ggplot(data = cv_pred, aes(x = elevation, y = (CVldmc), color = taxon)) +
-  geom_jitter(data = (trait_cvs_wide), 
+  geom_jitter(data = (trait_cvs_wide_plot), 
               aes(x = elevation, y = log(ldmc)), 
               width = 10, 
               size = 0.1,
@@ -540,7 +540,7 @@ p_CVldmc <- ggplot(data = cv_pred, aes(x = elevation, y = (CVldmc), color = taxo
   ylab("ln(CV LDMC)")
 
 p_CVthickness <- ggplot(data = cv_pred, aes(x = elevation, y = (CVthickness), color = taxon)) +
-  geom_jitter(data = (trait_cvs_wide), 
+  geom_jitter(data = (trait_cvs_wide_plot), 
               aes(x = elevation, y = log(leaf_thickness_mm)), 
               width = 10, 
               size = 0.1,
