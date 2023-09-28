@@ -88,4 +88,13 @@ traits_wide <- traits_wide |>
          individual_uid = paste(site, taxon, plot_id, individual_nr, sep = "_"),
          leaf_uid = paste(site, taxon, plot_id, individual_nr, leaf_id, sep = "_"))
 
+traits_wide <- traits_wide |>
+  mutate(
+    plant_height_cm = if_else(id == "ABQ1404", 7.5, plant_height_cm,),
+    plant_height_cm = if_else(id %in% c("AUP3248", "AUO6988"), 18, plant_height_cm,),
+    plant_height_cm = if_else(id == "AEW0937", 16.4, plant_height_cm),
+    plant_height_cm = if_else(id == "CAE6952", 13, plant_height_cm),
+    plant_height_cm = if_else(id == "CER9449", 59, plant_height_cm),
+    plant_height_cm = if_else(id == "AOR3155", 63.5, plant_height_cm))
+
 # End of script ----
