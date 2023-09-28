@@ -43,10 +43,10 @@ pal_lm <- c("#016392", "#A0CBE8", "#E19825", "#F7C480", "#3E8853", "#9FCD99")
 
 # DATA LOADING ============================================================
 source("scripts/0_data_import.R") # sourcing data import script
-traits_wide$ID <- paste(traits_wide$individual_uid, traits_wide$taxon, sep="_")
+traits_wide$ID <- paste(traits_wide$site, traits_wide$plot_id, traits_wide$individual_nr, traits_wide$taxon, sep="_")
 
 # POOL ELEVATION WITHIN SITE. WAY: 3101; ACJ: 3468; TRE: 3715
-traits_df <- na.omit(traits_wide[ , c(-2:-4, -16:-18)])
+traits_df <- na.omit(traits_wide[ , c(-2:-5, -17:-19)])
 traits_df$elevation <- ifelse(traits_df$site == 'ACJ', 3468,
                               ifelse(traits_df$site == 'WAY', 3101,
                                      ifelse(traits_df$site == 'TRE', 3715, NA)))
@@ -60,7 +60,7 @@ Grouping_df$taxon <- as.character(Grouping_df$taxon) # ensure that taxon column 
 ## Functionality ----------------------------------------------------------
 ## CALCULATE HYPERVOLUMES FOR DESIRED GROUPINGS OF DATA
 FUN.Hypervolumes <- function(data = traits_df, # the data frame with traits and the grouping column
-                             TraitCols = c(6, 8:12), # which columns of the data frame contain the trait values, default excludes wet mass
+                             TraitCols = 8:12, # which columns of the data frame contain the trait values, default excludes wet mass and plant height due to identical plant height for many individuals
                              Grouping = "family" # by which column to establish groups
 ){
   data_scale <- log(data[,TraitCols]) # now applying logarithmic transformation
@@ -132,11 +132,11 @@ if(!file.exists(file.path("./data", "Hypervolumes.RData"))){
   ID_vols <- lapply(ID_hv, get_volume)
   
   ### Species Hypervolumes ####
-  taxon_hv <- FUN.Hypervolumes(Grouping = "taxon")
+  taxon_hv <- FUN.Hypervolumes(Grouping = "taxon", TraitCols = c(6, 8:12)) # also including plant height now
   taxon_vols <- lapply(taxon_hv, get_volume)
   
   ### Functional Group Hypervolumes ####
-  functional_group_hv <- FUN.Hypervolumes(Grouping = "functional_group")
+  functional_group_hv <- FUN.Hypervolumes(Grouping = "functional_group", TraitCols = c(6, 8:12)) # also including plant height now
   functional_group_vols <- lapply(functional_group_hv, get_volume)
   
   ### Saving Hypervolume Lists ####
@@ -177,7 +177,7 @@ taxon.comps <- list(c("Gaultheria glomerata", "Halenia umbellata"), c("Gaultheri
 taxon.boxplot1 <- ggplot(plot_df, aes(y = values, x = taxon, fill = taxon)) +
   geom_boxplot() + 
   scale_fill_manual(values = pal_lm) +
-  stat_compare_means(comparisons = taxon.comps, method = 't.test', label = 'p.signif') +
+  # stat_compare_means(comparisons = taxon.comps, method = 't.test', label = 'p.signif') +
   my_theme +
   ylab('Hypervolume Size') + xlab('Taxon') + labs(fill = 'Species') +
   facet_wrap(~site) + 
@@ -198,11 +198,11 @@ fg.comps <- list(c("Forb", "Graminoid"), c("Graminoid", "Woody"), c("Forb", "Woo
 taxon.boxplot2 <- ggplot(plot_df, aes(y = values, x = functional_group, fill = taxon)) +
   geom_boxplot() + 
   scale_fill_manual(values = pal_lm) +
-  stat_compare_means(comparisons = fg.comps, method = 't.test', label = 'p.signif', size = 5) +
-  stat_compare_means(aes(group = taxon), label = 'p.signif', label.y = c(5, 9, 7.5), size = 5) +
+  # stat_compare_means(comparisons = fg.comps, method = 't.test', label = 'p.signif', size = 5) +
+  # stat_compare_means(aes(group = taxon), label = 'p.signif', label.y = c(5, 9, 7.5), size = 5) +
   my_theme +
   ylab('Hypervolume Size') + xlab('Functional Group') + labs(fill = 'Species') +
-  ylim(0, 15) +
+  # ylim(0, 15) +
   facet_wrap(~site) +
   theme(text = element_text(size = 16),
         legend.title = element_text(size = 14), 
