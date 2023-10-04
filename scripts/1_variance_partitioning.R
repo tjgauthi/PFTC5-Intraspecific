@@ -29,29 +29,55 @@ blank_theme <- theme(panel.grid.major = element_blank(), #removes major axis gri
 
 
 #### Data Organization ####
+traits_wide<-na.omit(traits_wide) #remove incomplete rows
+
 #check out how many leaves each individual has
 leaf_count <- traits_wide %>% 
-  group_by(site, plot_uid, individual_uid, taxon) %>% 
+  group_by(site, individual_uid, taxon) %>% 
   summarize(n = n())
 
-table(leaf_count$n)
+#filter out individuals that have 1-2 leaves only
+traits_wide <-subset (traits_wide, individual_uid != "TRE_Vaccinium floribundum_5_4" &
+                        individual_uid !="TRE_Vaccinium floribundum_5_1" &
+                        individual_uid !="TRE_Vaccinium floribundum_3_3" &
+                        individual_uid !="TRE_Vaccinium floribundum_1_2" &
+                        individual_uid !="TRE_Vaccinium floribundum_1_1" &
+                        individual_uid !="TRE_Lachemilla orbiculata_1_12" &
+                        individual_uid !="ACJ_Rhynchospora macrochaeta_5_3" &
+                        individual_uid !="ACJ_Rhynchospora macrochaeta_1_3" &
+                        individual_uid !="WAY_Vaccinium floribundum_5_5" &
+                        individual_uid !="TRE_Vaccinium floribundum_5_2" &
+                        individual_uid !="TRE_Paspalum bonplandianum_4_1" &
+                        individual_uid !="TRE_Lachemilla orbiculata_5_12" &
+                        individual_uid !="TRE_Lachemilla orbiculata_1_1")
 
-#need to decide on how to deal with individuals with 1-2 leaves
+#convert traits_wide back into long format 
+traits <- traits_wide |> 
+  pivot_longer(names_to = "trait", values_to = "value", cols = 10:16)
+
+
+#plotting a histogram for each trait to determine if the data is skewed
 traits %>% 
   ggplot(aes(x = value)) +
   geom_histogram() +
   facet_wrap(~trait, scales = "free")
 
-#in traits, we need to log transform the traits that should be transformed, and create individual uid column.
+#log transforming traits because of skew
 traits_log <- traits %>% 
   mutate(value = log(value))
+
+#plotting log transformed traits to confirm skew is gone
+traits_log %>% 
+  ggplot(aes(x = value)) +
+  geom_histogram() +
+  facet_wrap(~trait, scales = "free")
 
 #### Model Structure 2 - functional group/taxon/site/individual####
 
 output2 <- data.frame(NULL)
 for(i in unique(traits_log$trait)){
   #This code all comes from Julie Messier's web site
-  mod2<-lmer(value~1+(1|functional_group/taxon/site/individual_nr), 
+  mod2<-lmer(value~1+(1|functional_group/taxon/site/individual_uid), 
             data=traits_log %>% filter(trait == i), 
             na.action=na.omit)
   variances2<-c(unlist(lapply(VarCorr(mod2),diag)), 
@@ -68,7 +94,7 @@ for(i in unique(traits_log$trait)){
   
   var.comp2<- var.comp2 %>%
     mutate(Scale = plyr::mapvalues(Scale, from = c(""), to = c("Unexplained"))) %>% 
-    mutate(Scale = factor(Scale, levels = c("Unexplained", "individual_nr:(site:(taxon:functional_group)).(Intercept)", "site:(taxon:functional_group).(Intercept)","taxon:functional_group.(Intercept)","functional_group.(Intercept)"))) %>% 
+    mutate(Scale = factor(Scale, levels = c("Unexplained", "individual_uid:(site:(taxon:functional_group)).(Intercept)", "site:(taxon:functional_group).(Intercept)","taxon:functional_group.(Intercept)","functional_group.(Intercept)"))) %>% 
     # group_by(variable)%>%
     arrange(variable, Scale)%>%
     mutate(labypos=100-(cumsum(value)-0.5*value)) %>%
@@ -78,10 +104,11 @@ for(i in unique(traits_log$trait)){
   output2 <- bind_rows(output2, var.comp2)
 } 
 
+
 #Colour palette for graph: https://paletton.com/#uid=54n140kjJo3hfJliyuOl7gxlT9k
 #Colour palette is in low saturation 
 #Variance Partitioning Plot 2 
-VP_Plot2<-ggplot(output2 %>% 
+VP_Plot2<-ggplot(output2%>% 
                    filter(trait %notin% c("wet_mass_g")), 
                  aes(x=trait, y=value))+
   geom_col(aes(fill=Scale))+
@@ -129,7 +156,7 @@ for(i in unique(traits_log$trait)){
     samp <- dat[sample(nrow(dat), replace = T, size = nrow(dat)*0.9),]
   
   #This code all comes from Julie Messier's web site
-  mod<-lmer(value~1+(1|functional_group/taxon/site/individual_nr), 
+  mod<-lmer(value~1+(1|functional_group/taxon/site/individual_uid), 
              data=samp, 
              na.action=na.omit)
   variances<-c(unlist(lapply(VarCorr(mod),diag)), 
@@ -158,12 +185,14 @@ boot_summary <- boot_output %>%
   summarize(lower = quantile(vals, probs = 0.025), upper = quantile(vals, probs = 0.975))
 
 varpart_real <- output2 %>% 
-  mutate(part = plyr::mapvalues(Scale, from = c("Unexplained", "individual_nr:(site:(taxon:functional_group)).(Intercept)", "site:(taxon:functional_group).(Intercept)","taxon:functional_group.(Intercept)","functional_group.(Intercept)"), to = c("Unexplained","Between individuals within sites","Between sites within taxon","Between taxon within functional groups","Between functional groups"))) %>% 
+  mutate(part = plyr::mapvalues(Scale, from = c("Unexplained", "individual_uid:(site:(taxon:functional_group)).(Intercept)", "site:(taxon:functional_group).(Intercept)","taxon:functional_group.(Intercept)","functional_group.(Intercept)"), to = c("Unexplained","Between individuals within sites","Between sites within taxon","Between taxon within functional groups","Between functional groups"))) %>% 
   left_join(boot_summary) %>% 
   mutate(lower = lower*100,
          upper = upper*100)
 
-
+#converting percentage into a value out of 100
+boot_summary$lower <- boot_summary$lower*100 
+boot_summary$upper <- boot_summary$upper*100
 
 #### ARCHIVE - Model Structure 1 - functional group/taxon/individual + 1|site ####
 output <- data.frame(NULL)
@@ -244,7 +273,7 @@ plot_grid (VP_Plot + theme (legend.position = "none")+ labs(title = "functional 
 output2.1 <-output2 #creates output 2.1 based on model 2
 output2.1[,"intrainter"]<-NA #adds a new column "intrainter
 output2.1$intrainter <- ifelse (output2$Scale == "Unexplained"|
-                                  output2$Scale == "individual_nr:(site:(taxon:functional_group)).(Intercept)"|
+                                  output2$Scale == "individual_uid:(site:(taxon:functional_group)).(Intercept)"|
                                   output2$Scale == "site:(taxon:functional_group).(Intercept)",
                                 "Intraspecific","Interspecific")
 
@@ -355,3 +384,9 @@ VP_Plot_all<-ggplot(output_all, aes(x=trait, y=value))+
   labs(title = "All Species")
 VP_Plot_all
 
+
+
+
+####Testing Data ####
+library(writexl)
+write_xlsx(traits_wide,"C:/Users/tjgau/Desktop/PFTC5-Intraspecific-DA.1_VariancePartitioning/test.xlsx")
