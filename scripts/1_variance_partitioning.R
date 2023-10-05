@@ -104,6 +104,13 @@ for(i in unique(traits_log$trait)){
   output2 <- bind_rows(output2, var.comp2)
 } 
 
+#testing model for only plant height
+test <-lmer(value~1+(1|functional_group/taxon/site), 
+            data=traits_log %>% filter(trait == "plant_height_cm"), 
+            na.action=na.omit)
+variances.test <-c(unlist(lapply(VarCorr(test),diag)),
+                 attr(VarCorr(test),"sc")^2)
+(var.comp.test<-variances.test/sum(variances.test))
 
 #Colour palette for graph: https://paletton.com/#uid=54n140kjJo3hfJliyuOl7gxlT9k
 #Colour palette is in low saturation 
