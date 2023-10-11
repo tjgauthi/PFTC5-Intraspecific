@@ -15,6 +15,8 @@ library(ggplot2)
 #library(effects)
 library(gridExtra)
 library(lmerTest)
+library(ggpubr)
+library(grid)
 
 # Plotting theme
 my_theme = theme_bw() + 
@@ -99,10 +101,13 @@ p_height <- ggplot(data = lm_pred, aes(x = elevation, y = ln_height, color = tax
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
-  xlab("Elevation (m)") +
-  ylab("ln Height")
+  #xlab("Elevation (m)") +
+  xlab(NULL) +
+  ylab("ln Height") +
+  labs(tag = "F")
 
 p_drymass <- ggplot(data = lm_pred, aes(x = elevation, y = ln_dry_mass, color = taxon)) +
   geom_jitter(data = traits_wide_lm, 
@@ -111,11 +116,14 @@ p_drymass <- ggplot(data = lm_pred, aes(x = elevation, y = ln_dry_mass, color = 
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
-  ylim(-6,-0.5) +
-  xlab("Elevation (m)") +
-  ylab("ln Dry mass")
+  #ylim(-6,-0.5) +
+  #xlab("Elevation (m)") +
+  xlab(NULL) +
+  ylab("ln Dry mass")+
+  labs(tag = "A")
 
 p_area <- ggplot(data = lm_pred, aes(x = elevation, y = ln_area, color = taxon)) +
   geom_jitter(data = traits_wide_lm, 
@@ -124,11 +132,14 @@ p_area <- ggplot(data = lm_pred, aes(x = elevation, y = ln_area, color = taxon))
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() +
-  ylim(-2,4) +
-  xlab("Elevation (m)") +
-  ylab("ln Leaf area")
+  #ylim(-2,4) +
+  #xlab("Elevation (m)") +
+  xlab(NULL) +
+  ylab("ln Leaf area")+
+  labs(tag = "B")
 
 p_sla <- ggplot(data = lm_pred, aes(x = elevation, y = ln_sla, color = taxon)) +
   geom_jitter(data = traits_wide_lm, 
@@ -137,11 +148,14 @@ p_sla <- ggplot(data = lm_pred, aes(x = elevation, y = ln_sla, color = taxon)) +
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
   ylim(3.5,6) +
-  xlab("Elevation (m)") +
-  ylab("ln SLA")
+  #xlab("Elevation (m)") +
+  xlab(NULL) +
+  ylab("ln SLA")+
+  labs(tag = "C")
 
 p_ldmc <- ggplot(data = lm_pred, aes(x = elevation, y = ln_ldmc, color = taxon)) +
   geom_jitter(data = traits_wide_lm, 
@@ -150,11 +164,14 @@ p_ldmc <- ggplot(data = lm_pred, aes(x = elevation, y = ln_ldmc, color = taxon))
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
   ylim(-1.8,-0.5) +
-  xlab("Elevation (m)") +
-  ylab("ln LDMC")
+  #xlab("Elevation (m)") +
+  xlab(NULL) +
+  ylab("ln LDMC")+
+  labs(tag = "D")
 
 p_thickness <- ggplot(data = lm_pred, aes(x = elevation, y = ln_thickness, color = taxon)) +
   geom_jitter(data = traits_wide_lm, 
@@ -163,18 +180,31 @@ p_thickness <- ggplot(data = lm_pred, aes(x = elevation, y = ln_thickness, color
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
-  ylim(-3,-0.5) +
+  #ylim(-3,-0.5) +
   xlab("Elevation (m)") +
-  ylab("ln Leaf thickness")
+  ylab("ln Leaf thickness")+
+  labs(tag = "E")
 
 # Assemble plot, save to PDF
-pdf("lm_fig.pdf", width = 6, height = 4)
-grid.arrange(p_height, p_drymass, p_area, p_sla, p_ldmc, p_thickness, nrow =2)
-dev.off()
+# pdf("lm_fig.pdf", width = 6, height = 4)
+# grid.arrange(p_height, p_drymass, p_area, p_sla, p_ldmc, p_thickness, nrow =2)
+# dev.off()
 # This is simple variation in mean trait values with elevation
 
+
+blank <- grid.rect(gp=gpar(col="white"))
+
+# Trying to make a common legend
+
+png("fig_lmm2_traits.png", width = 7,height = 5, units = "in", res=300)
+#svg("fig_lmm2_traits.svg", width = 7, height = 5)
+ggarrange(p_drymass, p_area, p_sla, p_ldmc, p_thickness, p_height, 
+          nrow =2, ncol = 3, heights = c(1,1), align = "hv",
+          common.legend = TRUE, legend="bottom")
+dev.off()
 
 
 
@@ -220,9 +250,13 @@ trait_cvs_wide = spread(trait_cvs, key = trait, value = cv_trait)
 ##### SINGULAR - note most of the plant_height CVs are zero b/c measured on the
 ##### same individuals, but these were removed above
 
-mod_CVheight1 = lmer(log(plant_height_cm) ~ scale(elevation) * taxon + (1|site),
-                     data = subset(trait_cvs_wide, plant_height_cm != 0),
-                     na.action = na.omit)
+# mod_CVheight1 = lmer(log(plant_height_cm) ~ scale(elevation) * taxon + (1|site),
+#                      data = subset(trait_cvs_wide, plant_height_cm != 0),
+#                      na.action = na.omit)
+
+#### Note here that we are not including height b/c there is no
+#### intra-individual variation in height
+
 ##### OK
 
 #mod_CVdry_mass1 = lmer(dry_mass_g ~ scale(elevation) * taxon + (1|site/plot_id),
@@ -274,7 +308,7 @@ mod_CVthickness1 = lmer(log(leaf_thickness_mm) ~ scale(elevation) * taxon + (1|s
 
 # Generate model predictions
 cv_pred = trait_cvs_wide[,1:7]
-cv_pred$CVheight = predict(mod_CVheight1, re.form=NA, newdata=cv_pred)
+#cv_pred$CVheight = predict(mod_CVheight1, re.form=NA, newdata=cv_pred)
 cv_pred$CVdry_mass = predict(mod_CVdry_mass1, re.form=NA, newdata=cv_pred)
 cv_pred$CVarea = predict(mod_CVarea1, re.form=NA, newdata=cv_pred)
 cv_pred$CVsla = predict(mod_CVsla1, re.form=NA, newdata=cv_pred)
@@ -283,18 +317,18 @@ cv_pred$CVthickness = predict(mod_CVthickness1, re.form=NA, newdata=cv_pred)
 
 
 # Build panels
-p_CVheight <- ggplot(data = cv_pred, aes(x = elevation, y = (CVheight), color = taxon)) +
-  geom_jitter(data = (trait_cvs_wide), 
-              aes(x = elevation, y = log(plant_height_cm)), 
-              width = 10, 
-              size = 0.1,
-              alpha = 0.3) +
-  my_theme +
-  scale_color_manual(values = pal_lm) +
-  geom_line() + 
-  ylim(-4,0) +
-  xlab("Elevation (m)") +
-  ylab("ln(CV Height)")
+# p_CVheight <- ggplot(data = cv_pred, aes(x = elevation, y = (CVheight), color = taxon)) +
+#   geom_jitter(data = (trait_cvs_wide), 
+#               aes(x = elevation, y = log(plant_height_cm)), 
+#               width = 10, 
+#               size = 0.1,
+#               alpha = 0.3) +
+#   my_theme +
+#   scale_color_manual(values = pal_lm) +
+#   geom_line() + 
+#   ylim(-4,0) +
+#   xlab("Elevation (m)") +
+#   ylab("ln(CV Height)")
 
 p_CVdrymass <- ggplot(data = cv_pred, aes(x = elevation, y = (CVdry_mass), color = taxon)) +
   geom_jitter(data = (trait_cvs_wide), 
@@ -303,11 +337,14 @@ p_CVdrymass <- ggplot(data = cv_pred, aes(x = elevation, y = (CVdry_mass), color
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
   ylim(-4,0) +
-  xlab("Elevation (m)") +
-  ylab("ln(CV Dry mass)")
+  #xlab("Elevation (m)") +
+  xlab(NULL) +
+  ylab("ln(CV Dry mass)")+
+  labs(tag = "A")
 
 p_CVarea <- ggplot(data = cv_pred, aes(x = elevation, y = (CVarea), color = taxon)) +
   geom_jitter(data = (trait_cvs_wide), 
@@ -316,11 +353,14 @@ p_CVarea <- ggplot(data = cv_pred, aes(x = elevation, y = (CVarea), color = taxo
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
   ylim(-4,0) +
-  xlab("Elevation (m)") +
-  ylab("ln(CV Leaf area)")
+  #xlab("Elevation (m)") +
+  xlab(NULL) +
+  ylab("ln(CV Leaf area)")+
+  labs(tag = "B")
 
 p_CVsla <- ggplot(data = cv_pred, aes(x = elevation, y = (CVsla), color = taxon)) +
   geom_jitter(data = (trait_cvs_wide), 
@@ -329,11 +369,14 @@ p_CVsla <- ggplot(data = cv_pred, aes(x = elevation, y = (CVsla), color = taxon)
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
   ylim(-4,0) +
-  xlab("Elevation (m)") +
-  ylab("ln(CV SLA)")
+  #xlab("Elevation (m)") +
+  xlab(NULL) +
+  ylab("ln(CV SLA)")+
+  labs(tag = "C")
 
 p_CVldmc <- ggplot(data = cv_pred, aes(x = elevation, y = (CVldmc), color = taxon)) +
   geom_jitter(data = (trait_cvs_wide), 
@@ -342,11 +385,14 @@ p_CVldmc <- ggplot(data = cv_pred, aes(x = elevation, y = (CVldmc), color = taxo
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
   ylim(-4,0) +
-  xlab("Elevation (m)") +
-  ylab("ln(CV LDMC)")
+  #xlab("Elevation (m)") +
+  xlab(NULL) +
+  ylab("ln(CV LDMC)")+
+  labs(tag = "D")
 
 p_CVthickness <- ggplot(data = cv_pred, aes(x = elevation, y = (CVthickness), color = taxon)) +
   geom_jitter(data = (trait_cvs_wide), 
@@ -355,17 +401,28 @@ p_CVthickness <- ggplot(data = cv_pred, aes(x = elevation, y = (CVthickness), co
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
   ylim(-4,0) +
   xlab("Elevation (m)") +
-  ylab("ln(CV Leaf thickness)")
+  ylab("ln(CV Leaf thickness)")+
+  labs(tag = "E")
 
 # Assemble plot and save PDF
-pdf("cv_individual_fig.pdf", width=6, height=4)
-grid.arrange(p_CVdrymass, p_CVarea, p_CVsla, p_CVldmc,p_CVthickness, nrow =2)
-dev.off()
+#pdf("cv_individual_fig.pdf", width=6, height=4)
+#grid.arrange(p_CVdrymass, p_CVarea, p_CVsla, p_CVldmc,p_CVthickness, nrow =2)
+#dev.off()
 # This is intra-individual variation, computed (obviously) at the individual level
+
+
+png("fig_lmm3_cv_ind.png", width = 7,height = 5, units = "in", res=300)
+#svg("fig_lmm3_cv_ind.svg", width = 7, height = 5)
+ggarrange(p_CVdrymass, p_CVarea, p_CVsla, p_CVldmc,p_CVthickness,
+          nrow =2, ncol = 3, heights = c(1,1), align = "hv",
+          common.legend = TRUE, legend="bottom")
+dev.off()
+
 
 
 
@@ -491,11 +548,14 @@ p_CVheight <- ggplot(data = cv_pred, aes(x = elevation, y = (CVheight), color = 
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
   ylim(-4,0) +
-  xlab("Elevation (m)") +
-  ylab("ln(CV Height)")
+  #xlab("Elevation (m)") +
+  xlab(NULL) +
+  ylab("ln(CV Height)")+
+  labs(tag = "F")
 
 p_CVdrymass <- ggplot(data = cv_pred, aes(x = elevation, y = (CVdry_mass), color = taxon)) +
   geom_jitter(data = (trait_cvs_wide_plot), 
@@ -504,11 +564,14 @@ p_CVdrymass <- ggplot(data = cv_pred, aes(x = elevation, y = (CVdry_mass), color
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
   ylim(-4,0) +
-  xlab("Elevation (m)") +
-  ylab("ln(CV Dry mass)")
+  #xlab("Elevation (m)") +
+  xlab(NULL) +
+  ylab("ln(CV Dry mass)")+
+  labs(tag = "A")
 
 p_CVarea <- ggplot(data = cv_pred, aes(x = elevation, y = (CVarea), color = taxon)) +
   geom_jitter(data = (trait_cvs_wide_plot), 
@@ -517,11 +580,14 @@ p_CVarea <- ggplot(data = cv_pred, aes(x = elevation, y = (CVarea), color = taxo
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
   ylim(-4,0) +
-  xlab("Elevation (m)") +
-  ylab("ln(CV Leaf area)")
+  #xlab("Elevation (m)") +
+  xlab(NULL) +
+  ylab("ln(CV Leaf area)")+
+  labs(tag = "B")
 
 p_CVsla <- ggplot(data = cv_pred, aes(x = elevation, y = (CVsla), color = taxon)) +
   geom_jitter(data = (trait_cvs_wide_plot), 
@@ -530,11 +596,14 @@ p_CVsla <- ggplot(data = cv_pred, aes(x = elevation, y = (CVsla), color = taxon)
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
   ylim(-4,0) +
-  xlab("Elevation (m)") +
-  ylab("ln(CV SLA)")
+  #xlab("Elevation (m)") +
+  xlab(NULL) +
+  ylab("ln(CV SLA)")+
+  labs(tag = "C")
 
 p_CVldmc <- ggplot(data = cv_pred, aes(x = elevation, y = (CVldmc), color = taxon)) +
   geom_jitter(data = (trait_cvs_wide_plot), 
@@ -543,11 +612,14 @@ p_CVldmc <- ggplot(data = cv_pred, aes(x = elevation, y = (CVldmc), color = taxo
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
   ylim(-4,0) +
-  xlab("Elevation (m)") +
-  ylab("ln(CV LDMC)")
+  #xlab("Elevation (m)") +
+  xlab(NULL) +
+  ylab("ln(CV LDMC)")+
+  labs(tag = "D")
 
 p_CVthickness <- ggplot(data = cv_pred, aes(x = elevation, y = (CVthickness), color = taxon)) +
   geom_jitter(data = (trait_cvs_wide_plot), 
@@ -556,17 +628,28 @@ p_CVthickness <- ggplot(data = cv_pred, aes(x = elevation, y = (CVthickness), co
               size = 0.1,
               alpha = 0.3) +
   my_theme +
+  theme(legend.title = element_blank()) +
   scale_color_manual(values = pal_lm) +
   geom_line() + 
   ylim(-4,0) +
   xlab("Elevation (m)") +
-  ylab("ln(CV Leaf thickness)")
+  ylab("ln(CV Leaf thickness)")+
+  labs(tag = "E")
 
 # Assemble plot and save PDF
-pdf("cv_plot_fig.pdf", width=6, height=4)
-grid.arrange(p_CVheight, p_CVdrymass, p_CVarea, p_CVsla, p_CVldmc,p_CVthickness, nrow =2)
-dev.off()
+# pdf("cv_plot_fig.pdf", width=6, height=4)
+# grid.arrange(p_CVheight, p_CVdrymass, p_CVarea, p_CVsla, p_CVldmc,p_CVthickness, nrow =2)
+# dev.off()
 # This is intra-specific variation (computed at the plot level)
+
+png("fig_lmm4_cv_plot.png", width = 7,height = 5, units = "in", res=300)
+#svg("fig_lmm4_cv_plot.svg", width = 7, height = 5)
+ggarrange(p_CVdrymass, p_CVarea, p_CVsla, p_CVldmc,p_CVthickness, p_CVheight,
+          nrow =2, ncol = 3, heights = c(1,1), align = "hv",
+          common.legend = TRUE, legend="bottom")
+dev.off()
+
+
 
 
 
@@ -579,12 +662,16 @@ dev.off()
 # Pull slope values associated with each trait and species
 # species trait slope
 
+rel_sp <- c("Gaultheria glomerata","Paspalum bonplandianum",
+            "Vaccinium floribundum","Rhynchospora macrochaeta",
+            "Halenia umbellata", "Lachemilla orbiculata")
+
 
 slopes.cv.ind = data.frame(species = rep(rel_sp[c(1,5,6,2,4,3)],6),
                            trait = c(rep("area", 6),rep("dry_mass", 6),rep("height", 6),rep("ldmc", 6),rep("sla", 6),rep("thickness", 6)),
                            slope = c(coef(summary(mod_CVarea1))[,"Estimate"][c(2,8:12)],
                                      coef(summary(mod_CVdry_mass1))[,"Estimate"][c(2,8:12)],
-                                     coef(summary(mod_CVheight1))[,"Estimate"][c(2,8:12)],
+                                     rep(NA,6),#coef(summary(mod_CVheight1))[,"Estimate"][c(2,8:12)],
                                      coef(summary(mod_CVldmc1))[,"Estimate"][c(2,8:12)],
                                      coef(summary(mod_CVsla1))[,"Estimate"][c(2,8:12)],
                                      coef(summary(mod_CVthickness1))[,"Estimate"][c(2,8:12)]))
@@ -617,18 +704,52 @@ slopes.cv.plot = merge(slopes.others, slopes.gago %>% select(-species), by=c( "t
   mutate(slope = slope.x+slope.y) %>% select(-slope.x,-slope.y) %>% 
   bind_rows(slopes.gago)
 
+slopes.cv.ind$trait = slopes.cv.ind$trait %>% 
+  gsub("thickness", "Leaf thickness",.) %>% 
+  gsub("area", "Leaf area", .) %>% 
+  gsub("ldmc", "Leaf dry\nmatter content", .) %>% 
+  gsub("sla", "Specific leaf area", .) %>% 
+  gsub("dry_mass", "Leaf dry mass", .) %>% 
+  gsub("height", "Plant height", .)
+
+slopes.cv.plot$trait = slopes.cv.plot$trait %>% 
+  gsub("thickness", "Leaf thickness",.) %>% 
+  gsub("area", "Leaf area", .) %>% 
+  gsub("ldmc", "Leaf dry\nmatter content", .) %>% 
+  gsub("sla", "Specific leaf area", .) %>% 
+  gsub("dry_mass", "Leaf dry mass", .) %>% 
+  gsub("height", "Plant height", .)
+
+
+text_plot = data.frame(x = 0.55,
+                       y = c(1:6 + 0.2,1:6 - 0.2),
+                       lab = c(rep("I.I.",6), rep("I.S.",6)))
 
 p = ggplot(slopes.cv.ind, aes(y = trait, x = slope, color = species)) +
   geom_point(pch = "|",size = 6,position = position_nudge(y = 0.2)) +
   geom_point(data=slopes.cv.plot, pch="|", size=6,position = position_nudge(y=-0.2)) +
-  scale_color_manual(values = pal_lm) +
+  annotate("text", x = text_plot$x, y = text_plot$y, label=text_plot$lab, fontface="italic") +
+  scale_color_manual(values = pal_lm,#,#,
+                     labels = c("G. glomerata",
+                     "H. umbellata",
+                     "L. orbiculata",
+                     "P. bonplandianum",
+                     "R. macrochaeta",
+                     "V. floribundum")) +
   my_theme +
+  theme(legend.position = "bottom") +
+  theme(legend.title = element_blank()) +
   geom_vline(xintercept = 0, lty = 2) +
-  xlim(-0.3,0.5) +
+  xlim(-0.3,0.55) +
+  theme(axis.text.y = element_text(angle = 45, vjust = 0)) +
   geom_hline(yintercept = 1:6) +
-  theme(axis.title.y = element_blank())
+  theme(axis.title.y = element_blank())+ 
+  theme(legend.text=element_text(size=rel(0.7)))+
+  xlab("Effect of elevation")
 
-pdf("plot_overview.pdf", 4,4)
+#pdf("plot_overview.pdf", 4,4)
+png("fig_lmm1_overview.png", height = 5,width = 4.5, units = "in", res=300)
+#svg("fig_lmm1_overview.svg", height = 5,width = 4.5)
 p
 dev.off()
 
@@ -652,33 +773,36 @@ pval.traits = data.frame(area = anova(mod_area1)$`Pr(>F)`,
            thickness = anova(mod_thickness1)$`Pr(>F)`)
 
 rownames(pval.traits) =  c("scale(elevation)", "taxon", "scale(elevation):taxon")
-
+#pval.traits = format(pval.traits, digits = 2, nsmall = 5)
 write.csv(pval.traits, "pval.traits.csv")
 
 
 pval.CV.ind = data.frame(area = anova(mod_CVarea1)$`Pr(>F)`,
                          dry_mass = anova(mod_CVdry_mass1)$`Pr(>F)`,
-                         height = anova(mod_CVheight1)$`Pr(>F)`,
+                         height = NA,
                          ldmc = anova(mod_CVldmc1)$`Pr(>F)`,
                          sla = anova(mod_CVsla1)$`Pr(>F)`,
                          thickness = anova(mod_CVthickness1)$`Pr(>F)`)
 
+
 rownames(pval.CV.ind) =  c("scale(elevation)", "taxon", "scale(elevation):taxon")
 
-write.csv(pval.traits, "pval.CV.ind.csv")
+write.csv(pval.CV.ind, "pval.CV.ind.csv")
 
 
 
-pval.CV.plot = data.frame(area = anova(mod_area1)$`Pr(>F)`,
-                         dry_mass = anova(mod_dry_mass1)$`Pr(>F)`,
-                         height = anova(mod_height1)$`Pr(>F)`,
-                         ldmc = anova(mod_ldmc1)$`Pr(>F)`,
-                         sla = anova(mod_sla1)$`Pr(>F)`,
-                         thickness = anova(mod_thickness1)$`Pr(>F)`)
+pval.CV.plot = data.frame(area = anova(mod_CVplot_area1)$`Pr(>F)`,
+                         dry_mass = anova(mod_CVplot_dry_mass1)$`Pr(>F)`,
+                         height = anova(mod_CVplot_height1)$`Pr(>F)`,
+                         ldmc = anova(mod_CVplot_ldmc1)$`Pr(>F)`,
+                         sla = anova(mod_CVplot_sla1)$`Pr(>F)`,
+                         thickness = anova(mod_CVplot_thickness1)$`Pr(>F)`)
+
+pval.CV.plot = pval.CV.plot[1:3,]
 
 rownames(pval.CV.plot) =  c("scale(elevation)", "taxon", "scale(elevation):taxon")
 
-write.csv(pval.traits, "pval.CV.plot.csv")
+write.csv(pval.CV.plot, "pval.CV.plot.csv")
 
 
 
@@ -686,6 +810,4 @@ write.csv(pval.traits, "pval.CV.plot.csv")
 #
 # END
 #
-
-
 
