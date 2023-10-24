@@ -32,8 +32,13 @@ blank_theme <- theme(panel.grid.major = element_blank(), #removes major axis gri
 traits_wide<-na.omit(traits_wide) #remove incomplete rows
 
 #check out how many leaves each individual has
-leaf_count <- traits_wide %>% 
+individual_leaf_count <- traits_wide %>% 
   group_by(site, individual_uid, taxon) %>% 
+  summarize(n = n())
+
+#check out how many leaves each site has
+site_leaf_count <- traits_wide %>% 
+  group_by(site, taxon) %>% 
   summarize(n = n())
 
 #filter out individuals that have 1-2 leaves only
@@ -46,10 +51,16 @@ traits_wide <-subset (traits_wide, individual_uid != "TRE_Vaccinium floribundum_
                         individual_uid !="ACJ_Rhynchospora macrochaeta_5_3" &
                         individual_uid !="ACJ_Rhynchospora macrochaeta_1_3" &
                         individual_uid !="WAY_Vaccinium floribundum_5_5" &
+                        individual_uid !="WAY_Lachemilla orbiculata_1_2" &
                         individual_uid !="TRE_Vaccinium floribundum_5_2" &
                         individual_uid !="TRE_Paspalum bonplandianum_4_1" &
                         individual_uid !="TRE_Lachemilla orbiculata_5_12" &
                         individual_uid !="TRE_Lachemilla orbiculata_1_1")
+
+#check out how many leaves each site has
+site_leaf_count <- traits_wide %>% 
+  group_by(site, taxon) %>% 
+  summarize(n = n())
 
 #convert traits_wide back into long format 
 traits <- traits_wide |> 
@@ -104,23 +115,42 @@ for(i in unique(traits_log$trait)){
   output2 <- bind_rows(output2, var.comp2)
 } 
 
-#testing model for only plant height
-test <-lmer(value~1+(1|functional_group/taxon/site), 
+#model for plant height (no intra-individual variance)
+PH.model <-lmer(value~1+(1|functional_group/taxon/site), 
             data=traits_log %>% filter(trait == "plant_height_cm"), 
             na.action=na.omit)
-variances.test <-c(unlist(lapply(VarCorr(test),diag)),
-                 attr(VarCorr(test),"sc")^2)
-(var.comp.test<-variances.test/sum(variances.test))
+PH.variances <-c(unlist(lapply(VarCorr(PH.model),diag)),
+                   attr(VarCorr(PH.model),"sc")^2)
+PH.var.comp<-PH.variances/sum(PH.variances)
+
+PH.var.comp<-as.data.frame(PH.var.comp) #creates a dataframe from the values
+PH.var.comp<-cbind(rownames(PH.var.comp),data.frame(PH.var.comp,row.names=NULL)) #changes row names into a column
+PH.var.comp<-melt(PH.var.comp,value.name="value") #makes var.comp into a variable
+names(PH.var.comp)[1]<-"Scale" #changes the first column name to "scale"
+
+PH.var.comp$value<-PH.var.comp$value *100 #changes values into % 
+
+PH.var.comp<- PH.var.comp %>%
+  mutate(Scale = plyr::mapvalues(Scale, from = c(""), to = c("Unexplained"))) %>% 
+  mutate(Scale = factor(Scale, levels = c("Unexplained", "individual_uid:(site:(taxon:functional_group)).(Intercept)", "site:(taxon:functional_group).(Intercept)","taxon:functional_group.(Intercept)","functional_group.(Intercept)"))) %>% 
+  # group_by(variable)%>%
+  arrange(variable, Scale)%>%
+  mutate(labypos=100-(cumsum(value)-0.5*value)) %>%
+  #subset(value>1) %>% #this line removes variance partitioning less than 1% so that there are no zero labels
+  mutate(trait = "plant_height_cm")
+
+
 
 #Colour palette for graph: https://paletton.com/#uid=54n140kjJo3hfJliyuOl7gxlT9k
 #Colour palette is in low saturation 
 #Variance Partitioning Plot 2 
+VP_legend_title <- "Ecological Scales (not plant height)"
 VP_Plot2<-ggplot(output2%>% 
-                   filter(trait %notin% c("wet_mass_g")), 
+                   filter(trait %notin% c("wet_mass_g","plant_height_cm")), 
                  aes(x=trait, y=value))+
   geom_col(aes(fill=Scale))+
   geom_text(aes(y=labypos, label=round(value,digits = 1)),colour="white", size = 5)+
-  scale_fill_manual (values = c("#5D3640","#8A5462","#C68596","#8977AA","#4F4266"),
+  scale_fill_manual (VP_legend_title, values = c("#5D3640","#8A5462","#C68596","#8977AA","#4F4266"),
                     #values = c("#77293e","#ae435f","#f27092","#543a83","#37245a"),
                      labels = c("Within Individual + Unexplained",
                                 "Between individuals within sites",
@@ -134,18 +164,65 @@ VP_Plot2<-ggplot(output2%>%
   scale_y_continuous(expand=c(0,0),limits=c(0,100.1))+#this forces the graph to actually start at 0% and end at 100%
   scale_x_discrete(limits = c(
                               # "wet_mass_g",
-                              "dry_mass_g", "ldmc", "leaf_area_cm2","sla_cm2_g","leaf_thickness_mm","plant_height_cm"),
+                              "dry_mass_g", "ldmc", "leaf_area_cm2","sla_cm2_g","leaf_thickness_mm"),
                    labels = c(
                               # "wet_mass_g"="Wet Mass (g)", 
                               "dry_mass_g"="Dry Mass (g)",
                               "ldmc"="LDMC", 
                               "leaf_area_cm2"=expression(paste("Leaf Area "(cm^2))),
                               "sla_cm2_g"=expression("SLA "(cm^2/g)), 
-                              "leaf_thickness_mm"="Leaf Thickness (mm)",
-                              "plant_height_cm"="Plant Height (cm)")) +
-  theme(axis.text.x = element_text(angle = 330, hjust = 0))
+                              "leaf_thickness_mm"="Leaf Thickness (mm)")) +
+  theme(axis.text.x = element_text(angle = 300, hjust = 0))
   #labs(title = "functional group/taxon/site/individual")
 VP_Plot2
+
+#plant height VP
+PH_legend_title <- "Plant Height Ecological Scales"
+
+PH.VP_Plot2<-ggplot(PH.var.comp,aes(x=trait, y=value))+
+  geom_col(aes(fill=Scale))+
+  geom_text(aes(y=labypos, label=round(value,digits = 1)),colour="white", size = 5)+
+  scale_fill_manual (PH_legend_title, values = c("#8A5462","#C68596","#8977AA","#4F4266"),
+                     #values = c("#77293e","#ae435f","#f27092","#543a83","#37245a"),
+                     labels = c("Between individuals within sites + Unexplained",
+                                "Between sites within taxon",
+                                "Between taxon within functional groups",
+                                "Between functional groups"))+
+  ylab(NULL)+
+  #xlab("Log (natural) Transformed Traits")+
+  blank_theme+
+  labs(fill = "Ecological Scale")+
+  scale_y_continuous(expand=c(0,0),limits=c(0,100.1))+#this forces the graph to actually start at 0% and end at 100%
+  scale_x_discrete(labels = c("Plant Height (cm)")) +
+  theme(axis.text.x = element_text(angle = 300, hjust = 0))
+PH.VP_Plot2
+
+#combining plots
+
+PH.VP_Plot2.legend<- get_legend(PH.VP_Plot2)  #gets the legend from each plot
+VP_Plot2.legend<- get_legend(VP_Plot2)
+
+temp.plots<- plot_grid(VP_Plot2 + theme(legend.position = "none"),
+                       PH.VP_Plot2 + theme(legend.position = "none") + xlab(NULL),
+                       ncol=2,
+                       align = 'h',
+                       rel_widths = c(1,0.3))
+
+temp.legend<-plot_grid(VP_Plot2.legend,
+                       PH.VP_Plot2.legend,
+                       align = 'v',
+                       rel_heights = c(0.5,1),
+                       nrow = 2)
+plot_grid(temp.plots,
+          temp.legend,
+          rel_widths =  c(1,0.5),
+          ncol = 2)
+
+ggsave ("VP.jpeg",
+        width = 6.5, height=5, units = "in",
+        dpi = 800)
+
+
 
 #### bootstrapping 95% CI for variance partitioning ####
 
