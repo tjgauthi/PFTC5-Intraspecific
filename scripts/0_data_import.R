@@ -88,7 +88,11 @@ traits_wide <- traits_wide |>
          individual_uid = paste(site, taxon, plot_id, individual_nr, sep = "_"),
          leaf_uid = paste(site, taxon, plot_id, individual_nr, leaf_id, sep = "_"))
 
-traits_wide <- traits_wide |>
+#Code for cleaning leftover mistakes in the plant height
+#This will be changed in the original cleaning code, so it will be redundant once that has been pushed and merged, and the new clean data is on OSF.
+#But it doesn't cause any problems if this line of code is here then.
+
+traits_wide <- traits_wide |> 
   mutate(
     plant_height_cm = if_else(id == "ABQ1404", 7.5, plant_height_cm,),
     plant_height_cm = if_else(id %in% c("AUP3248", "AUO6988"), 18, plant_height_cm,),
