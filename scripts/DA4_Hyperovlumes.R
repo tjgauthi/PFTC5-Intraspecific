@@ -487,10 +487,11 @@ OverID <- data.frame(Value = unlist(Overlaps),
                      SP = rep(names(Overlaps), unlist(lapply(Overlaps, length))))
 OverID$SP <- factor(OverID$SP, levels = unique(OverID$SP))
 
-ID_plot <- ggplot(OverID, aes(y = Value, x = SP, fill = SP)) + 
+ID_plot <- ggplot(OverID, aes(y = Value, x = SP, fill = factor(SP))) +
   geom_boxplot() +
-  scale_fill_manual(values = pal_lm) + 
+  scale_fill_manual(values = as.character(pal_lm)) + 
   guides(fill = "none") + 
+  labs(x = "Species Identity", y = "Jaccard Overlap Statistic") + 
   theme_bw()
 
 ### Fusing of Plots ----
