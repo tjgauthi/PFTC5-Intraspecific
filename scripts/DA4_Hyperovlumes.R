@@ -14,7 +14,7 @@ install.load.package <- function(x) {
     install.packages(x, repos='http://cran.us.r-project.org')
   require(x, character.only = TRUE)
 }
-package_vec <- c(
+package_vec1 <- c(
   "hypervolume",
   "car",
   "multcomp",
@@ -32,7 +32,7 @@ package_vec <- c(
   "stringr",
   "tidyverse"
 )
-sapply(package_vec, install.load.package)
+sapply(package_vec1, install.load.package)
 
 ## Functionality ----------------------------------------------------------
 `%nin%` <- Negate(`%in%`) # a function for negation of %in% function 
@@ -94,10 +94,15 @@ FUN.Hypervolumes <- function(data = traits_df, # the data frame with traits and 
 
 ## CALCULATE OVERLAP OF HYPERVOLUMES
 FUN.Overlap <- function(data, # the list of hypervolumes from which to pull
-                        names # the names of the hypervolumes which to compare
+                        names, # the names of the hypervolumes which to compare
+                        what = "jaccard"
 ){
   overlap <- hypervolume_set(data[[names[1]]], data[[names[2]]], check.memory = FALSE) # extract hypervolumes and safe as set
-  overlap <- hypervolume::hypervolume_overlap_statistics(overlap)[1] # jaccard distance calculation
+  if(what == "jaccard"){
+    overlap <- hypervolume::hypervolume_overlap_statistics(overlap)[1] # jaccard distance calculation
+  }else{
+    overlap <- as.numeric(get_volume(overlap[["Intersection"]]))
+  }
   return(overlap) # return numeric overlap
 }
 
@@ -360,11 +365,15 @@ FG_plot <- plot_grid(OV_Functional,
 Overlaps <- data.frame(G1 = c("H. umbellata", "P. bonplandianum", "G. glomerata"),
                        G2 = c("L. orbiculata", "R. macrochaeta", "V. floribundum"),
                        Value = c(FUN.Overlap(data = taxon_hv,
-                                             names = Grouping_df$taxon[Grouping_df$functional_group == "Forb"]),
+                                             names = Grouping_df$taxon[Grouping_df$functional_group == "Forb"],
+                                             what = "absolute"),
                                  FUN.Overlap(data = taxon_hv,
-                                             names = Grouping_df$taxon[Grouping_df$functional_group == "Graminoid"]),
+                                             names = Grouping_df$taxon[Grouping_df$functional_group == "Graminoid"],
+                                             what = "absolute"),
                                  FUN.Overlap(data = taxon_hv,
-                                             names = Grouping_df$taxon[Grouping_df$functional_group == "Woody"])))
+                                             names = Grouping_df$taxon[Grouping_df$functional_group == "Woody"],
+                                             what = "absolute")
+                                 ))
 
 Volumes <- data.frame(
   Groups = names(vols_ls[["Taxon"]]$vols),
@@ -435,11 +444,11 @@ cl <- parallel::makeCluster(cl) # for parallel pbapply functions
 parallel::clusterExport(cl,
                         varlist = c("vols_ls", 
                                     "install.load.package",
-                                    "package_vec",
+                                    "package_vec1",
                                     "FUN.Overlap"),
                         envir = environment()
 )
-clusterpacks <- clusterCall(cl, function() sapply(package_vec, install.load.package))
+clusterpacks <- clusterCall(cl, function() sapply(package_vec1, install.load.package))
 
 Overlaps <- lapply(spec_vec, FUN = function(sp){
   print(sp)
@@ -477,8 +486,6 @@ OverID$SP <- spec_vec
 OverID <- data.frame(Value = unlist(Overlaps),
                      SP = rep(names(Overlaps), unlist(lapply(Overlaps, length))))
 OverID$SP <- factor(OverID$SP, levels = unique(OverID$SP))
-
-stop("Make the plot")
 
 ID_plot <- ggplot(OverID, aes(y = Value, x = SP, fill = SP)) + 
   geom_boxplot() +
