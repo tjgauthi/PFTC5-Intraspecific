@@ -38,10 +38,10 @@ dir.create("data")
 dir.create("data/raw")
 
 #Download traits data from OSF
-get_file(node = "gs8u6",
+try(get_file(node = "gs8u6",
          file = "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv",
          path = "data/raw",
-         remote_path = "traits")
+         remote_path = "traits")) # this link is once again broken...
 
 ### 1) Data cleaning ----
 
