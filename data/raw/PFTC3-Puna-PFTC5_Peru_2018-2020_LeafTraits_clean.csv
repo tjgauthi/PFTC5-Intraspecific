@@ -43645,6 +43645,7 @@ year,season,month,site,treatment,plot_id,individual_nr,leaf_id,id,functional_gro
 2020,wet_season,March,ACJ,C,1,1,4,ASM0021,Graminoid,Poaceae,Paspalum bonplandianum,sla_cm2_g,265.6451612903226,NA,3487.4,-13.176034,-71.628828,PFTC5
 2020,wet_season,March,ACJ,C,1,1,4,ASM0021,Graminoid,Poaceae,Paspalum bonplandianum,ldmc,0.3,NA,3487.4,-13.176034,-71.628828,PFTC5
 2020,wet_season,March,ACJ,C,1,1,4,ASM0021,Graminoid,Poaceae,Paspalum bonplandianum,leaf_thickness_mm,0.109,NA,3487.4,-13.176034,-71.628828,PFTC5
+2020,wet_season,March,ACJ,C,2,2,4,ABQ1404,Graminoid,Poaceae,Paspalum bonplandianum,plant_height_cm,7.5,NA,3487.7,-13.1761,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,2,2,4,ABQ1404,Graminoid,Poaceae,Paspalum bonplandianum,wet_mass_g,0.026,NA,3487.7,-13.1761,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,2,2,4,ABQ1404,Graminoid,Poaceae,Paspalum bonplandianum,dry_mass_g,0.0065,NA,3487.7,-13.1761,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,2,2,4,ABQ1404,Graminoid,Poaceae,Paspalum bonplandianum,leaf_area_cm2,1.922,NA,3487.7,-13.1761,-71.628834,PFTC5
@@ -45868,12 +45869,14 @@ year,season,month,site,treatment,plot_id,individual_nr,leaf_id,id,functional_gro
 2020,wet_season,March,QUE,NB,1,2,NA,BJJ5192,Forb,Geraniaceae,Geranium sessiliflorum,sla_cm2_g,127.6078431372549,2019,3882.9,-13.213786,-71.619294,PFTC5
 2020,wet_season,March,QUE,NB,1,2,NA,BJJ5192,Forb,Geraniaceae,Geranium sessiliflorum,ldmc,0.22972972972972971,2019,3882.9,-13.213786,-71.619294,PFTC5
 2020,wet_season,March,QUE,NB,1,2,NA,BJJ5192,Forb,Geraniaceae,Geranium sessiliflorum,leaf_thickness_mm,0.19433333333333333,2019,3882.9,-13.213786,-71.619294,PFTC5
+2020,wet_season,March,ACJ,C,2,3,4,AUO6988,Graminoid,Poaceae,Paspalum bonplandianum,plant_height_cm,18,NA,3487.7,-13.1761,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,2,3,4,AUO6988,Graminoid,Poaceae,Paspalum bonplandianum,wet_mass_g,0.014,NA,3487.7,-13.1761,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,2,3,4,AUO6988,Graminoid,Poaceae,Paspalum bonplandianum,dry_mass_g,0.0036,NA,3487.7,-13.1761,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,2,3,4,AUO6988,Graminoid,Poaceae,Paspalum bonplandianum,leaf_area_cm2,1.458,NA,3487.7,-13.1761,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,2,3,4,AUO6988,Graminoid,Poaceae,Paspalum bonplandianum,sla_cm2_g,405,NA,3487.7,-13.1761,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,2,3,4,AUO6988,Graminoid,Poaceae,Paspalum bonplandianum,ldmc,0.2571428571428571,NA,3487.7,-13.1761,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,2,3,4,AUO6988,Graminoid,Poaceae,Paspalum bonplandianum,leaf_thickness_mm,0.11733333333333333,NA,3487.7,-13.1761,-71.628834,PFTC5
+2020,wet_season,March,ACJ,C,2,3,3,AUP3248,Graminoid,Poaceae,Paspalum bonplandianum,plant_height_cm,18,NA,3487.7,-13.1761,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,2,3,3,AUP3248,Graminoid,Poaceae,Paspalum bonplandianum,wet_mass_g,0.075,NA,3487.7,-13.1761,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,2,3,3,AUP3248,Graminoid,Poaceae,Paspalum bonplandianum,dry_mass_g,0.0236,NA,3487.7,-13.1761,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,2,3,3,AUP3248,Graminoid,Poaceae,Paspalum bonplandianum,leaf_area_cm2,5.583,NA,3487.7,-13.1761,-71.628834,PFTC5
@@ -48835,7 +48838,7 @@ year,season,month,site,treatment,plot_id,individual_nr,leaf_id,id,functional_gro
 2020,wet_season,March,WAY,C,2,2,3,CAG0238,Woody,Ericaceae,Gaultheria glomerata,sla_cm2_g,59.508867667121415,NA,3120.3,-13.18043,-71.589752,PFTC5
 2020,wet_season,March,WAY,C,2,2,3,CAG0238,Woody,Ericaceae,Gaultheria glomerata,ldmc,0.4952702702702703,NA,3120.3,-13.18043,-71.589752,PFTC5
 2020,wet_season,March,WAY,C,2,2,3,CAG0238,Woody,Ericaceae,Gaultheria glomerata,leaf_thickness_mm,0.39733333333333337,NA,3120.3,-13.18043,-71.589752,PFTC5
-2020,wet_season,March,WAY,C,2,1,5,CAE6952,Woody,Ericaceae,Gaultheria glomerata,plant_height_cm,18,NA,3120.3,-13.18043,-71.589752,PFTC5
+2020,wet_season,March,WAY,C,2,1,5,CAE6952,Woody,Ericaceae,Gaultheria glomerata,plant_height_cm,13,NA,3120.3,-13.18043,-71.589752,PFTC5
 2020,wet_season,March,WAY,C,2,1,5,CAE6952,Woody,Ericaceae,Gaultheria glomerata,wet_mass_g,0.108,NA,3120.3,-13.18043,-71.589752,PFTC5
 2020,wet_season,March,WAY,C,2,1,5,CAE6952,Woody,Ericaceae,Gaultheria glomerata,dry_mass_g,0.051,NA,3120.3,-13.18043,-71.589752,PFTC5
 2020,wet_season,March,WAY,C,2,1,5,CAE6952,Woody,Ericaceae,Gaultheria glomerata,leaf_area_cm2,3.2439999999999998,NA,3120.3,-13.18043,-71.589752,PFTC5
@@ -51853,7 +51856,7 @@ year,season,month,site,treatment,plot_id,individual_nr,leaf_id,id,functional_gro
 2020,wet_season,March,ACJ,C,2,3,2,ASP0769,Graminoid,Poaceae,Paspalum bonplandianum,sla_cm2_g,258.0094786729858,NA,3487.7,-13.1761,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,2,3,2,ASP0769,Graminoid,Poaceae,Paspalum bonplandianum,ldmc,0.28513513513513516,NA,3487.7,-13.1761,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,2,3,2,ASP0769,Graminoid,Poaceae,Paspalum bonplandianum,leaf_thickness_mm,0.107,NA,3487.7,-13.1761,-71.628834,PFTC5
-2020,wet_season,March,ACJ,C,3,2,2,AEW0937,Graminoid,Poaceae,Paspalum bonplandianum,plant_height_cm,11.7,NA,3489,-13.176134,-71.628834,PFTC5
+2020,wet_season,March,ACJ,C,3,2,2,AEW0937,Graminoid,Poaceae,Paspalum bonplandianum,plant_height_cm,16.4,NA,3489,-13.176134,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,3,2,2,AEW0937,Graminoid,Poaceae,Paspalum bonplandianum,wet_mass_g,0.095,NA,3489,-13.176134,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,3,2,2,AEW0937,Graminoid,Poaceae,Paspalum bonplandianum,dry_mass_g,0.023,NA,3489,-13.176134,-71.628834,PFTC5
 2020,wet_season,March,ACJ,C,3,2,2,AEW0937,Graminoid,Poaceae,Paspalum bonplandianum,leaf_area_cm2,5.83,NA,3489,-13.176134,-71.628834,PFTC5
@@ -53339,7 +53342,7 @@ year,season,month,site,treatment,plot_id,individual_nr,leaf_id,id,functional_gro
 2020,wet_season,March,TRE,NB,5,1,NA,CUF0423,Graminoid,Juncaceae,Luzula racemosa,sla_cm2_g,64.18181818181819,2018,3621.3,-13.138871,-71.631095,PFTC5
 2020,wet_season,March,TRE,NB,5,1,NA,CUF0423,Graminoid,Juncaceae,Luzula racemosa,ldmc,0.36065573770491804,2018,3621.3,-13.138871,-71.631095,PFTC5
 2020,wet_season,March,TRE,NB,5,1,NA,CUF0423,Graminoid,Juncaceae,Luzula racemosa,leaf_thickness_mm,0.205,2018,3621.3,-13.138871,-71.631095,PFTC5
-2020,wet_season,March,WAY,C,3,2,5,CER9449,Graminoid,Cyperaceae,Rhynchospora macrochaeta,plant_height_cm,39,NA,3121,-13.180457,-71.589806,PFTC5
+2020,wet_season,March,WAY,C,3,2,5,CER9449,Graminoid,Cyperaceae,Rhynchospora macrochaeta,plant_height_cm,59,NA,3121,-13.180457,-71.589806,PFTC5
 2020,wet_season,March,WAY,C,3,2,5,CER9449,Graminoid,Cyperaceae,Rhynchospora macrochaeta,wet_mass_g,0.476,NA,3121,-13.180457,-71.589806,PFTC5
 2020,wet_season,March,WAY,C,3,2,5,CER9449,Graminoid,Cyperaceae,Rhynchospora macrochaeta,dry_mass_g,0.2167,NA,3121,-13.180457,-71.589806,PFTC5
 2020,wet_season,March,WAY,C,3,2,5,CER9449,Graminoid,Cyperaceae,Rhynchospora macrochaeta,leaf_area_cm2,18.085,NA,3121,-13.180457,-71.589806,PFTC5
@@ -53430,7 +53433,7 @@ year,season,month,site,treatment,plot_id,individual_nr,leaf_id,id,functional_gro
 2020,wet_season,March,WAY,C,3,3,1,AON1951,Graminoid,Cyperaceae,Rhynchospora macrochaeta,sla_cm2_g,85.37062937062937,NA,3121,-13.180457,-71.589806,PFTC5
 2020,wet_season,March,WAY,C,3,3,1,AON1951,Graminoid,Cyperaceae,Rhynchospora macrochaeta,ldmc,0.43999999999999995,NA,3121,-13.180457,-71.589806,PFTC5
 2020,wet_season,March,WAY,C,3,3,1,AON1951,Graminoid,Cyperaceae,Rhynchospora macrochaeta,leaf_thickness_mm,0.12866666666666668,NA,3121,-13.180457,-71.589806,PFTC5
-2020,wet_season,March,WAY,C,3,3,2,AOR3155,Graminoid,Cyperaceae,Rhynchospora macrochaeta,plant_height_cm,63.2,NA,3121,-13.180457,-71.589806,PFTC5
+2020,wet_season,March,WAY,C,3,3,2,AOR3155,Graminoid,Cyperaceae,Rhynchospora macrochaeta,plant_height_cm,63.5,NA,3121,-13.180457,-71.589806,PFTC5
 2020,wet_season,March,WAY,C,3,3,2,AOR3155,Graminoid,Cyperaceae,Rhynchospora macrochaeta,wet_mass_g,0.352,NA,3121,-13.180457,-71.589806,PFTC5
 2020,wet_season,March,WAY,C,3,3,2,AOR3155,Graminoid,Cyperaceae,Rhynchospora macrochaeta,dry_mass_g,0.1136,NA,3121,-13.180457,-71.589806,PFTC5
 2020,wet_season,March,WAY,C,3,3,2,AOR3155,Graminoid,Cyperaceae,Rhynchospora macrochaeta,leaf_area_cm2,11.494,NA,3121,-13.180457,-71.589806,PFTC5
