@@ -30,7 +30,8 @@ package_vec1 <- c(
   "parallel",
   "dplyr",
   "stringr",
-  "tidyverse"
+  "tidyverse",
+  "maditr"
 )
 sapply(package_vec1, install.load.package)
 
@@ -167,76 +168,147 @@ if(!file.exists(file.path("./data", "Hypervolumes.RData"))){
   load(file.path("./data", "Hypervolumes.RData"))
 }
 
-## Comparison of Volumes --------------------------------------------------
-message("Hypervolume comparison")
-### Preparing data
+## Preparing data ----------------------------------------------------------
+vols_ls <- list(
+  Individuals = list(vols = ID_vols,
+                     hv = ID_hv),
+  Taxon = list(vols = taxon_vols,
+               hv = taxon_hv),
+  Functional = list(vols = functional_group_vols,
+                    hv = functional_group_hv)
+)
+vols_ls <- lapply(vols_ls, FUN = function(x){
+  lapply(x, FUN = function(y){
+    names(y) <- str_replace_all(names(y), c(
+      c('Halenia umbellata' = 'H. umbellata', 
+        'Lachemilla orbiculata' = 'L. orbiculata', 
+        'Paspalum bonplandianum' = 'P. bonplandianum', 
+        'Rhynchospora macrochaeta' = 'R. macrochaeta', 
+        'Gaultheria glomerata' = 'G. glomerata', 
+        'Vaccinium floribundum' = 'V. floribundum')
+    ))
+    y
+  })
+})
+
+
 Vols_df <- data.frame(values = unlist(ID_vols),
                       ID = names(unlist(ID_vols))
 )
 Vols_df$ID <- gsub(Vols_df$ID, pattern = ".untitled", replacement = "")
-# create plotting data
 plot_df <- plyr::join(x = Vols_df, y = traits_df, by = "ID") %>%
   distinct(values, ID, .keep_all = TRUE) 
 # %>% 
 #   filter(values != max(.$values)) #  and filter out the outlier which is TRE_1_NA_Rhynchospora macrochaeta
 ### factorise columns that need to be factors
-plot_df$taxon <- factor(plot_df$taxon, levels = c('Halenia umbellata', 'Lachemilla orbiculata', 'Paspalum bonplandianum', 'Rhynchospora macrochaeta', 'Gaultheria glomerata', 'Vaccinium floribundum'))
+plot_df$taxon <- str_replace_all(plot_df$taxon, c(
+  c('Halenia umbellata' = 'H. umbellata', 
+    'Lachemilla orbiculata' = 'L. orbiculata', 
+    'Paspalum bonplandianum' = 'P. bonplandianum', 
+    'Rhynchospora macrochaeta' = 'R. macrochaeta', 
+    'Gaultheria glomerata' = 'G. glomerata', 
+    'Vaccinium floribundum' = 'V. floribundum')
+))
+plot_df$taxon <- factor(plot_df$taxon, levels = c('H. umbellata', 'L. orbiculata', 'P. bonplandianum', 'R. macrochaeta', 'G. glomerata', 'V. floribundum'))
 plot_df$functional_group <- as.factor(plot_df$functional_group)
 plot_df$site %<>% factor(levels = c('WAY', 'ACJ', 'TRE'))
 
-### Volume comparison by taxon -----
+## Sizes of Hypervolumes --------------------------------------------------
+message("#### Sizes of Hypervolumes")
+### Taxon -----
 print("Volume by taxon")
 ### set comparisons for plotted boxplots
-taxon.comps <- list(c("Gaultheria glomerata", "Halenia umbellata"), c("Gaultheria glomerata", "Lachemilla orbiculata"), c("Gaultheria glomerata", "Paspalum bonplandianum"), c("Gaultheria glomerata", "Rhynchospora macrochaeta"), c("Gaultheria glomerata", "Vaccinium floribundum"),
-                    c("Halenia umbellata", "Lachemilla orbiculata"), c("Halenia umbellata", "Paspalum bonplandianum"), c("Halenia umbellata", "Rhynchospora macrochaeta"), c("Halenia umbellata", "Vaccinium floribundum"),
-                    c("Lachemilla orbiculata", "Paspalum bonplandianum"), c("Lachemilla orbiculata", "Rhynchospora macrochaeta"), c("Lachemilla orbiculata", "Vaccinium floribundum"),
-                    c("Paspalum bonplandianum", "Rhynchospora macrochaeta"), c("Paspalum bonplandianum", "Vaccinium floribundum"),
-                    c("Rhynchospora macrochaeta", "Vaccinium floribundum")
+taxon.comps <- list(c("G. glomerata", "V. floribundum"),
+                    c("H. umbellata", "L. orbiculata"),
+                    c("P. bonplandianum", "R. macrochaeta")
 )
-
-taxon.boxplot1 <- ggplot(plot_df, aes(y = values, x = taxon, fill = taxon)) +
+sizes_indiv_taxon_gg <- ggplot(plot_df, aes(y = log(values), x = taxon, fill = taxon)) +
   geom_boxplot() + 
   scale_fill_manual(values = pal_lm) +
-  # stat_compare_means(comparisons = taxon.comps, method = 't.test', label = 'p.signif') +
+  stat_compare_means(comparisons = taxon.comps, method = 't.test', label = 'p.signif') +
   my_theme +
-  ylab('Hypervolume Size') + xlab('Taxon') + labs(fill = 'Species') +
-  facet_wrap(~site) + 
+  labs(y = 'Log-Transformed Hypervolume Size', x = '', fill = 'Species', title = "Hypervolumes of Individuals") +
+  # facet_wrap(~site) + 
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
         text = element_text(size = 16),
         legend.title = element_text(size = 14), 
-        legend.text = element_text(size = 12) 
+        legend.text = element_text(size = 12)
   )
 
-print(taxon.boxplot1)
-ggsave('taxon.boxplot1.png', taxon.boxplot1, units = 'in', height = 5.5, width = 11.4, dpi = 600)
-ggsave('taxon.boxplot1.pdf', taxon.boxplot1, units = 'in', height = 5.5, width = 11.4, dpi = 600)
+sizes_total_taxon_gg <- ggplot(
+  data.frame(
+    Groups = names(vols_ls[["Taxon"]]$vols),
+    Value = unlist(vols_ls[["Taxon"]]$vols)
+  ), 
+  aes(x = factor(Groups, levels = names(pal_lm)), y = Value, fill = factor(Groups))) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_manual(values = pal_lm) +
+  labs(x = "", y = "Hypervolume Size", title = "Total Hypervolumes") + 
+  theme_bw() + 
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        text = element_text(size = 16),
+        legend.title = element_text(size = 14), 
+        legend.text = element_text(size = 12),
+        legend.position = "none"
+  )
 
-### Volume comparison by functional groups -----
+sizes_taxon_gg <- plot_grid(sizes_indiv_taxon_gg+theme(legend.position = "none"),
+          sizes_total_taxon_gg, 
+          get_legend(sizes_indiv_taxon_gg),
+          rel_widths = c(1, 1, 0.5), ncol = 3)
+sizes_taxon_gg
+
+### Functional Groups -----
 print("Volume by functional group")
 fg.comps <- list(c("Forb", "Graminoid"), c("Graminoid", "Woody"), c("Forb", "Woody"))
-taxon.boxplot2 <- ggplot(plot_df, aes(y = values, x = functional_group, fill = taxon)) +
+sizes_indiv_fg_gg <- ggplot(plot_df, aes(y = log(values), x = functional_group, fill = functional_group)) +
   geom_boxplot() + 
-  scale_fill_manual(values = pal_lm) +
-  # stat_compare_means(comparisons = fg.comps, method = 't.test', label = 'p.signif', size = 5) +
-  # stat_compare_means(aes(group = taxon), label = 'p.signif', label.y = c(5, 9, 7.5), size = 5) +
+  scale_fill_manual(values = FG_pal) +
+  stat_compare_means(comparisons = fg.comps, method = 't.test', label = 'p.signif', size = 5) +
   my_theme +
-  ylab('Hypervolume Size') + xlab('Functional Group') + labs(fill = 'Species') +
-  # ylim(0, 15) +
-  facet_wrap(~site) +
-  theme(text = element_text(size = 16),
+  labs(y = 'Log-Transformed Hypervolume Size', x = '', fill = 'Functional Group', title = "Hypervolumes of Individuals") +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        text = element_text(size = 16),
         legend.title = element_text(size = 14), 
-        legend.text = element_text(size = 12) 
+        legend.text = element_text(size = 12)
   )
 
-print(taxon.boxplot2)
-ggsave('taxon.boxplot2.png', taxon.boxplot2, units = 'in', height = 5.5, width = 11.4, dpi = 600)
-ggsave('taxon.boxplot2.pdf', taxon.boxplot2, units = 'in', height = 5.5, width = 11.4, dpi = 600)
+sizes_total_fg_gg <- ggplot(
+  data.frame(
+    Groups = names(vols_ls[["Functional"]]$vols),
+    Value = unlist(vols_ls[["Functional"]]$vols)
+  ), 
+                            aes(x = Groups, y = Value, fill = factor(Groups))) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_manual(values = FG_pal) +
+  labs(x = "", y = "Hypervolume Size", title = "Total Hypervolumes") + 
+  guides(fill = FALSE) + 
+  theme_bw() + 
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        text = element_text(size = 16),
+        legend.title = element_text(size = 14), 
+        legend.text = element_text(size = 12),
+        legend.position = "none"
+  )
 
+sizes_fg_gg <- plot_grid(sizes_indiv_fg_gg+theme(legend.position = "none"),
+                            sizes_total_fg_gg, 
+                            get_legend(sizes_indiv_fg_gg),
+                            rel_widths = c(1, 1, 0.5), ncol = 3)
+sizes_fg_gg
 
-### Volume comparison by elevation -----
+### Manuscript Plot ----
+sizes_gg <- plot_grid(sizes_fg_gg, sizes_taxon_gg, ncol = 1, labels = "AUTO")
+ggsave(file.path("plots", 'HV_Sizes.png'), sizes_gg, units = 'in', height = 10, width = 12, dpi = 600)
+
+### Elevation Effects ----
+#### Plot ----
 print("Volume by elevation")
-taxon.scatterplot <- ggplot(plot_df, aes(y = values, x = elevation, color = taxon)) +
+elev_gg <- ggplot(plot_df, aes(y = values, x = elevation, color = taxon)) +
   geom_point() + 
   geom_smooth(method = 'lm', formula = y~x + I(x^2), se = F) +
   scale_color_manual(values = pal_lm) +
@@ -246,123 +318,81 @@ taxon.scatterplot <- ggplot(plot_df, aes(y = values, x = elevation, color = taxo
         legend.title = element_text(size = 14), 
         legend.text = element_text(size = 12) 
   )
-print(taxon.scatterplot)
-ggsave('taxon.scatterplot.png', taxon.scatterplot, units = 'in', height = 4.7, width = 7.4, dpi = 600)
-ggsave('taxon.scatterplot.pdf', taxon.scatterplot, units = 'in', height = 4.7, width = 7.4, dpi = 600)
+elev_gg
+ggsave(file.path("plots", 'Elevation.png'), elev_gg, units = 'in', height = 4.7, width = 7.4, dpi = 600)
 
-## Overlap of Volumes -----------------------------------------------------
-print("Hypervolume overlap")
-vols_ls <- list(
-  Individuals = list(vols = ID_vols,
-                     hv = ID_hv),
-  Taxon = list(vols = taxon_vols,
-               hv = taxon_hv),
-  Functional = list(vols = functional_group_vols,
-                    hv = functional_group_hv)
-)
+#### Linear Mixed Effect Models ----
+print("Hypervolume linear mixed effect model")
+### taxonomic grouping of species
+fg <- traits_wide %>%
+  mutate(taxon = str_replace(taxon, ' ', '.')) %>%
+  distinct(taxon, functional_group, family)
+### elevation at sites		
+el.values <- traits_wide %>%
+  group_by(site) %>%
+  summarise(elevation = mean(elevation))
+### model data frame containing volume size, study compartments (site, plot, individual), taxonomic memembership, and elevation 				
+temp <- Vols_df %>%
+  separate(ID, c('site', 'plot_id', 'individual_nr', 'taxon'),  sep = '_') %>%
+  mutate(taxon = str_replace(taxon, ' ', '.'),
+         plot_id = factor(plot_id),
+         individual_nr = as.numeric(individual_nr)
+  ) %>%
+  left_join(fg, by = 'taxon') %>%
+  left_join(el.values, by = 'site') %>%
+  na.omit # THIS WILL REMOVE THE OUTLIERS
+temp$site %<>% factor(levels = c('WAY', 'ACJ', 'TRE'))
+temp$individual_uid <- paste(temp$site, temp$plot_id, temp$individual_nr, temp$taxon, sep = "_")
 
-# plot_df <- data.frame(sp = c(Grouping_df$taxon[Grouping_df$functional_group == "Forb"], "Overlap",
-#                              Grouping_df$taxon[Grouping_df$functional_group == "Graminoid"], "Overlap",
-#                              Grouping_df$taxon[Grouping_df$functional_group == "Woody"], "Overlap"),
-#                       fg = rep(c("Forb", "Graminoid", "Woody"), each = 3),
-#                       value = as.numeric(
-#                         c(taxon_vols[Grouping_df$taxon[Grouping_df$functional_group == "Forb"]],
-#                           FUN.Overlap(data = taxon_hv,
-#                                       names = Grouping_df$taxon[Grouping_df$functional_group == "Forb"]),
-#                           taxon_vols[Grouping_df$taxon[Grouping_df$functional_group == "Graminoid"]],
-#                           FUN.Overlap(data = taxon_hv,
-#                                       names = Grouping_df$taxon[Grouping_df$functional_group == "Graminoid"]),
-#                           taxon_vols[Grouping_df$taxon[Grouping_df$functional_group == "Woody"]],
-#                           FUN.Overlap(data = taxon_hv,
-#                                       names = Grouping_df$taxon[Grouping_df$functional_group == "Woody"]))
-#                       ),
-#                       sp2 = rep(c("sp1", "sp2", "Overlap"), 3)
-# )
-# plot_df$value[3] <- plot_df$value[3]*sum(plot_df$value[1:2])
-# plot_df$value[6] <- plot_df$value[6]*sum(plot_df$value[4:5])
-# plot_df$value[9] <- plot_df$value[9]*sum(plot_df$value[7:8])
-# plot_df$sp <- c("H. umbellata", "L. orbiculata", "Overlap", 
-#                 "P. bonplandianum", "R. macrochaeta", "Overlap",
-#                 "G. glomerata", "V. floribundum", "Overlap"
-# )
-# plot_df$sp <- factor(plot_df$sp, levels=c("H. umbellata", "P. bonplandianum", "G. glomerata", 
-#                                           "Overlap", 
-#                                           "L. orbiculata", "R. macrochaeta", "V. floribundum"
-# ))
-# 
-# 
-# 
-# c(pal_lm[c(1,3,5)], "#808080", pal_lm[c(2,4,6)])
-# 
-# ### plot it out
-# overlap.plot <- ggplot(plot_df, aes(x = fg, y = value, fill = sp, label = sp)) + 
-#   geom_bar(position="stack", stat="identity") + 
-#   geom_text(size = 5, position = position_stack(vjust = 0.6), family = 'Helvetica', fontface = rep(c('italic', 'italic', 'plain'), 3)) + 
-#   scale_fill_manual(values = c(pal_lm[c(1,3,5)], "#808080", pal_lm[c(2,4,6)])) +
-#   my_theme +
-#   labs(x = "Functional Group", y = "Hypervolume Size") +
-#   theme(legend.position = "none",
-#         text = element_text(size = 16)
-#   ) 
-# 
-# ## original volume sizes
-# functional_group_vols$Forb
-# functional_group_vols$Graminoid
-# functional_group_vols$Woody
-# 
-# ## overlaps
-# ForbGram_ov <- FUN.Overlap(functional_group_hv, c("Forb", "Graminoid"))
-# ForbWood_ov <- FUN.Overlap(functional_group_hv, c("Forb", "Woody"))
-# WoodGram_ov <- FUN.Overlap(functional_group_hv, c("Woody", "Graminoid"))
-# 
-# ## report overlaps
-# message("Forb + Graminoid")
-# ForbGram_ov
-# message("Forb + Woody")
-# ForbWood_ov
-# message("Graminoid + Woody")
-# WoodGram_ov
+# Add elevation instead of site
+# THESE ARE THE FINAL MODELS as of April 11, 2024
+print("taxon model ----")
+hv.taxon.model <- lmerTest::lmer(
+  values ~ 0 + scale(elevation)*taxon + (1|site), 
+  data = temp)
+print(car::Anova(hv.taxon.model, type = 3))
 
-### By Functional Group -----
-Overlaps <- as.data.frame(do.call(rbind, combn(x = names(vols_ls[["Functional"]]$vols), m = 2, simplify = FALSE)))
-colnames(Overlaps) <- c("G1", "G2")
-Overlap <- apply(Overlaps, 1, FUN = function(y){
+taxon.comparisons <- emmeans(hv.taxon.model, list(pairwise ~ taxon), adjust = "tukey")
+print(taxon.comparisons)
+
+print("functional group model ----")
+hv.fg.model <- lmerTest::lmer(
+  values ~ 0 + scale(elevation)*functional_group + (1|site), 
+  data = temp)
+print(car::Anova(hv.fg.model, type = 3))
+
+print("functional group comparison ----")
+fg.comparisons <- emmeans(hv.fg.model, list(pairwise ~ functional_group), adjust = "tukey")
+print(fg.comparisons)
+
+## Overlap of Hypervolumes ------------------------------------------------
+### Functional Group -----
+Overlaps_fg <- as.data.frame(do.call(rbind, combn(x = names(vols_ls[["Functional"]]$vols), m = 2, simplify = FALSE)))
+colnames(Overlaps_fg) <- c("G1", "G2")
+Overlap <- apply(Overlaps_fg, 1, FUN = function(y){
   FUN.Overlap(data = vols_ls[["Functional"]]$hv,
               names = y)
 })
-Overlaps$Value <- Overlap
+Overlaps_fg$Value <- Overlap*100
 
-Volumes <- data.frame(
-  Groups = names(vols_ls[["Functional"]]$vols),
-  Value = unlist(vols_ls[["Functional"]]$vols)
-)
-
-OV_Functional <- ggplot(Overlaps, aes(x = G1, y = G2, fill = Value, label = round(Value,2))) + 
-  geom_tile() + 
-  scale_fill_viridis_c(direction = -1, option = "E", begin = 0.2) +
+OV_fg <- ggplot(Overlaps_fg, aes(x = G1, y = G2, label = round(Value, 2))) + 
+  geom_label(fill = "white") + 
+  geom_tile(aes(fill = Value)) + 
+  scale_fill_viridis_c(direction = -1, option = "E", begin = 0.2,  limits = c(0, 10)) +
   geom_label() + 
-  labs(x = "", y = "", fill = "Overlap") +
-  my_theme
-VO_Functional <- ggplot(Volumes, aes(x = Groups, y = Value, fill = factor(Groups))) + 
-  geom_bar(stat = "identity") + 
-  scale_fill_manual(values = FG_pal) +
-  labs(x = "", y = "") + 
-  guides(fill = FALSE) + 
-  theme_bw()
-VO_FunctionalID <- ggplot(data = plot_df, aes(x = functional_group, y = values, fill = factor(functional_group))) +
-  geom_violin() + 
-  scale_fill_manual(values = FG_pal) +
-  labs(x = "", y = "") + 
-  guides(fill = FALSE) + 
-  my_theme
+  labs(x = "", y = "", fill = "Relative Overlap [%]", title = "Functional Groups") +
+  my_theme + 
+  theme(text = element_text(size = 16),
+        legend.title = element_text(size = 14), 
+        legend.text = element_text(size = 12),
+        legend.position = "bottom",
+        legend.key.width = unit(dev.size()[1] / 6, "inches")
+  )
+OV_fg
 
-FG_plot <- plot_grid(OV_Functional, 
-          grid.arrange(arrangeGrob(plot_grid(VO_Functional, VO_FunctionalID, ncol = 2), 
-                                   left = "Volume", bottom = "Functional Group")), 
-          ncol = 2, rel_widths = c(1, 1.5))
-
-### By Taxon -----
-Overlaps <- data.frame(G1 = c("H. umbellata", "P. bonplandianum", "G. glomerata"),
+### Taxon ----
+#### Venn Diagramms -----
+Overlaps_venn <- data.frame(G1 = c("H. umbellata", "P. bonplandianum", "G. glomerata"),
                        G2 = c("L. orbiculata", "R. macrochaeta", "V. floribundum"),
                        Value = c(FUN.Overlap(data = taxon_hv,
                                              names = Grouping_df$taxon[Grouping_df$functional_group == "Forb"],
@@ -375,16 +405,10 @@ Overlaps <- data.frame(G1 = c("H. umbellata", "P. bonplandianum", "G. glomerata"
                                              what = "absolute")
                                  ))
 
-Volumes <- data.frame(
-  Groups = names(vols_ls[["Taxon"]]$vols),
-  Value = unlist(vols_ls[["Taxon"]]$vols),
-  FG = c("Woody", "Forb", "Forb", "Graminoid", "Graminoid", "Woody")
-)
-
 Forbs_euler <- draw.pairwise.venn(
-  round(as.numeric(vols_ls$Taxon$vols$`Halenia umbellata`), 2), 
-  round(as.numeric(vols_ls$Taxon$vols$`Lachemilla orbiculata`), 2), 
-  round(Overlaps$Value[1], 4),
+  round(as.numeric(vols_ls$Taxon$vols$`H. umbellata`), 2), 
+  round(as.numeric(vols_ls$Taxon$vols$`L. orbiculata`), 2), 
+  round(Overlaps_venn$Value[1], 4),
   c("H. umbellata", "L. orbiculata"),
   fill = pal_lm[1:2],
   alpha = 1,
@@ -399,9 +423,9 @@ Forbs_euler <- draw.pairwise.venn(
 Forbs_euler <- ggdraw(Forbs_euler)
 
 Gram_euler <- draw.pairwise.venn(
-  round(as.numeric(vols_ls$Taxon$vols$`Paspalum bonplandianum`), 2), 
-  round(as.numeric(vols_ls$Taxon$vols$`Rhynchospora macrochaeta`), 2), 
-  round(Overlaps$Value[2], 4),
+  round(as.numeric(vols_ls$Taxon$vols$`P. bonplandianum`), 2), 
+  round(as.numeric(vols_ls$Taxon$vols$`R. macrochaeta`), 2), 
+  round(Overlaps_venn$Value[2], 4),
   c("P. bonplandianum", "R. macrochaeta"),
   fill = pal_lm[3:4],
   alpha = 1,
@@ -416,9 +440,9 @@ Gram_euler <- draw.pairwise.venn(
 Gram_euler <- ggdraw(Gram_euler)
 
 Wood_euler <- draw.pairwise.venn(
-  round(as.numeric(vols_ls$Taxon$vols$`Gaultheria glomerata`), 2), 
-  round(as.numeric(vols_ls$Taxon$vols$`Vaccinium floribundum`), 2), 
-  round(Overlaps$Value[3], 4),
+  round(as.numeric(vols_ls$Taxon$vols$`G. glomerata`), 2), 
+  round(as.numeric(vols_ls$Taxon$vols$`V. floribundum`), 2), 
+  round(Overlaps_venn$Value[3], 4),
   c("G. glomerata", "V. floribundum"),
   fill = pal_lm[5:6],
   alpha = 1,
@@ -432,7 +456,56 @@ Wood_euler <- draw.pairwise.venn(
 )
 Wood_euler <- ggdraw(Wood_euler)
 
-Taxon_plot <- plot_grid(Forbs_euler, Gram_euler, Wood_euler, ncol = 3)
+OV_venn <- plot_grid(Forbs_euler, Gram_euler, Wood_euler, ncol = 3)
+ggsave(file.path("plots", 'HV_Over_Venn.png'), OV_venn, units = 'in', height = 4.7, width = 14, dpi = 600)
+
+#### Relative Overlap -----
+cl <- parallel::detectCores()
+cl <- parallel::makeCluster(cl) # for parallel pbapply functions
+parallel::clusterExport(cl,
+                        varlist = c("vols_ls", 
+                                    "install.load.package",
+                                    "package_vec1",
+                                    "FUN.Overlap"),
+                        envir = environment()
+)
+clusterpacks <- clusterCall(cl, function() sapply(package_vec1, install.load.package))
+
+Overlaps_taxon <- as.data.frame(expand.grid(names(pal_lm), names(pal_lm)))
+colnames(Overlaps_taxon) <- c("G1", "G2")
+Overlap <- pbapply(Overlaps_taxon, 1, 
+                   cl = cl,
+                   FUN = function(y){
+  FUN.Overlap(data = vols_ls[["Taxon"]]$hv,
+              names = y)
+})
+stopCluster(cl)
+closeAllConnections()
+Overlaps_taxon$Value <- Overlap*100
+
+casted_OV <- dcast(Overlaps_taxon, G1~G2)
+G1 <- casted_OV[,1]
+casted_OV <- casted_OV[,-1]
+casted_OV[lower.tri(casted_OV, diag=TRUE)] <- NA 
+casted_OV <- melt(casted_OV)
+colnames(casted_OV) <- c("G2", "Value2")
+casted_OV$G1 <- rep(G1$G1, 6)
+Overlaps_taxon <- base::merge(Overlaps_taxon, casted_OV)
+
+OV_taxon <- ggplot(Overlaps_taxon, aes(x = G1, y = G2, label = round(Value2,2))) + 
+  geom_label(fill = "white") + 
+  geom_tile(aes(fill = Value2)) + 
+  scale_fill_viridis_c(direction = -1, option = "E", begin = 0.2, na.value = "white", limits = c(0, 10)) +
+  geom_label() + 
+  labs(x = "", y = "", fill = "Relative Overlap [%]", title = "Species") +
+  my_theme + 
+  theme(text = element_text(size = 16),
+        legend.title = element_text(size = 14), 
+        legend.text = element_text(size = 12),
+        legend.position = "bottom",
+        legend.key.width = unit(dev.size()[1] / 6, "inches")
+  )
+OV_taxon
 
 ### By Individuals in Species -----
 vols_ls$Individuals$vols <- vols_ls$Individuals$vols[which(!unlist(lapply(vols_ls$Individuals$hv, is.na)))]
@@ -474,6 +547,8 @@ Overlaps <- lapply(spec_vec, FUN = function(sp){
     over
   })
 })
+stopCluster(cl)
+closeAllConnections()
 names(Overlaps) <- spec_vec
 
 OverID <- do.call(rbind, lapply(Overlaps, FUN = function(x){
@@ -487,58 +562,28 @@ OverID <- data.frame(Value = unlist(Overlaps),
                      SP = rep(names(Overlaps), unlist(lapply(Overlaps, length))))
 OverID$SP <- factor(OverID$SP, levels = unique(OverID$SP))
 
-ID_plot <- ggplot(OverID, aes(y = Value, x = SP, fill = factor(SP))) +
+taxon.comps <- list(c("G. glomerata", "V. floribundum"),
+                    c("H. umbellata", "L. orbiculata"),
+                    c("P. bonplandianum", "R. macrochaeta")
+)
+
+OV_ID <- ggplot(OverID, aes(y = Value*100, x = SP, fill = factor(SP))) +
   geom_boxplot() +
+  stat_compare_means(comparisons = taxon.comps, method = 't.test', label = 'p.signif') +
   scale_fill_manual(values = as.character(pal_lm)) + 
   guides(fill = "none") + 
-  labs(x = "Species Identity", y = "Jaccard Overlap Statistic") + 
+  labs(x = "Species Identity", y = "Relatrive Overlap [%]", title = "Individual Hypervolumes") + 
   theme_bw()
+OV_ID
 
-### Fusing of Plots ----
-overlap.plot <- plot_grid(FG_plot, Taxon_plot, ID_plot, nrow = 3, labels = "auto")
-ggsave('overlap.plot.png', overlap.plot, units = 'in', height = 10, width = 10, dpi = 600)
-ggsave('overlap.plot.pdf', overlap.plot, units = 'in', height = 10, width = 10, dpi = 600)
+### Manuscript Plot ----
+overlaps_gg <- plot_grid(
+  plot_grid(OV_fg + theme(legend.position = "none"), OV_taxon + theme(legend.position = "none"), labels = "AUTO"),
+  get_legend(OV_taxon),
+  OV_ID, 
+  ncol = 1, rel_heights = c(1, 0.1, 0.7),
+  labels = c("", "", "C"))
+overlaps_gg
+ggsave(file.path("plots", 'HV_Overlaps.png'), overlaps_gg, units = 'in', height = 16, width = 21, dpi = 600)
 
-## Linear Mixed Effect Model of Volume Size -------------------------------
-print("Hypervolume linear mixed effect model")
-### taxonomic grouping of species
-fg <- traits_wide %>%
-  mutate(taxon = str_replace(taxon, ' ', '.')) %>%
-  distinct(taxon, functional_group, family)
-### elevation at sites		
-el.values <- traits_wide %>%
-  group_by(site) %>%
-  summarise(elevation = mean(elevation))
-### model data frame containing volume size, study compartments (site, plot, individual), taxonomic memembership, and elevation 				
-temp <- Vols_df %>%
-  separate(ID, c('site', 'plot_id', 'individual_nr', 'taxon'),  sep = '_') %>%
-  mutate(taxon = str_replace(taxon, ' ', '.'),
-         plot_id = factor(plot_id),
-         individual_nr = as.numeric(individual_nr)
-  ) %>%
-  left_join(fg, by = 'taxon') %>%
-  left_join(el.values, by = 'site') %>%
-  na.omit # THIS WILL REMOVE THE OUTLIERS
-temp$site %<>% factor(levels = c('WAY', 'ACJ', 'TRE'))
-temp$individual_uid <- paste(temp$site, temp$plot_id, temp$individual_nr, temp$taxon, sep = "_")
 
-# Add elevation instead of site
-# THESE ARE THE FINAL MODELS as of November 25, 2023
-print("taxon model ----")
-hv.taxon.model <- lmerTest::lmer(
-  values ~ 0 + scale(elevation)*taxon + (1|site/plot_id), 
-  data = temp)
-print(car::Anova(hv.taxon.model, type = 3))
-
-taxon.comparisons <- emmeans(hv.taxon.model, list(pairwise ~ taxon), adjust = "tukey")
-print(taxon.comparisons)
-
-print("functional group model ----")
-hv.fg.model <- lmerTest::lmer(
-  values ~ 0 + scale(elevation)*functional_group + (1|site/plot_id), 
-  data = temp)
-print(car::Anova(hv.fg.model, type = 3))
-
-print("functional group comparison ----")
-fg.comparisons <- emmeans(hv.fg.model, list(pairwise ~ functional_group), adjust = "tukey")
-print(fg.comparisons)
