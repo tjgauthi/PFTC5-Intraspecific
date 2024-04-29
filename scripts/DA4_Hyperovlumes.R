@@ -255,9 +255,9 @@ sizes_total_taxon_gg <- ggplot(
   )
 
 sizes_taxon_gg <- plot_grid(sizes_indiv_taxon_gg+theme(legend.position = "none"),
-          sizes_total_taxon_gg, 
-          get_legend(sizes_indiv_taxon_gg),
-          rel_widths = c(1, 1, 0.5), ncol = 3)
+                            sizes_total_taxon_gg, 
+                            get_legend(sizes_indiv_taxon_gg),
+                            rel_widths = c(1, 1, 0.5), ncol = 3)
 sizes_taxon_gg
 
 ### Functional Groups -----
@@ -281,7 +281,7 @@ sizes_total_fg_gg <- ggplot(
     Groups = names(vols_ls[["Functional"]]$vols),
     Value = unlist(vols_ls[["Functional"]]$vols)
   ), 
-                            aes(x = Groups, y = Value, fill = factor(Groups))) + 
+  aes(x = Groups, y = Value, fill = factor(Groups))) + 
   geom_bar(stat = "identity") + 
   scale_fill_manual(values = FG_pal) +
   labs(x = "", y = "Hypervolume Size", title = "Total Hypervolumes") + 
@@ -296,9 +296,9 @@ sizes_total_fg_gg <- ggplot(
   )
 
 sizes_fg_gg <- plot_grid(sizes_indiv_fg_gg+theme(legend.position = "none"),
-                            sizes_total_fg_gg, 
-                            get_legend(sizes_indiv_fg_gg),
-                            rel_widths = c(1, 1, 0.5), ncol = 3)
+                         sizes_total_fg_gg, 
+                         get_legend(sizes_indiv_fg_gg),
+                         rel_widths = c(1, 1, 0.5), ncol = 3)
 sizes_fg_gg
 
 ### Manuscript Plot ----
@@ -361,7 +361,6 @@ hv.fg.model <- lmerTest::lmer(
   data = temp)
 print(car::Anova(hv.fg.model, type = 3))
 
-print("functional group comparison ----")
 fg.comparisons <- emmeans(hv.fg.model, list(pairwise ~ functional_group), adjust = "tukey")
 print(fg.comparisons)
 
@@ -393,17 +392,17 @@ OV_fg
 ### Taxon ----
 #### Venn Diagramms -----
 Overlaps_venn <- data.frame(G1 = c("H. umbellata", "P. bonplandianum", "G. glomerata"),
-                       G2 = c("L. orbiculata", "R. macrochaeta", "V. floribundum"),
-                       Value = c(FUN.Overlap(data = taxon_hv,
-                                             names = Grouping_df$taxon[Grouping_df$functional_group == "Forb"],
-                                             what = "absolute"),
-                                 FUN.Overlap(data = taxon_hv,
-                                             names = Grouping_df$taxon[Grouping_df$functional_group == "Graminoid"],
-                                             what = "absolute"),
-                                 FUN.Overlap(data = taxon_hv,
-                                             names = Grouping_df$taxon[Grouping_df$functional_group == "Woody"],
-                                             what = "absolute")
-                                 ))
+                            G2 = c("L. orbiculata", "R. macrochaeta", "V. floribundum"),
+                            Value = c(FUN.Overlap(data = taxon_hv,
+                                                  names = Grouping_df$taxon[Grouping_df$functional_group == "Forb"],
+                                                  what = "absolute"),
+                                      FUN.Overlap(data = taxon_hv,
+                                                  names = Grouping_df$taxon[Grouping_df$functional_group == "Graminoid"],
+                                                  what = "absolute"),
+                                      FUN.Overlap(data = taxon_hv,
+                                                  names = Grouping_df$taxon[Grouping_df$functional_group == "Woody"],
+                                                  what = "absolute")
+                            ))
 
 Forbs_euler <- draw.pairwise.venn(
   round(as.numeric(vols_ls$Taxon$vols$`H. umbellata`), 2), 
@@ -476,9 +475,9 @@ colnames(Overlaps_taxon) <- c("G1", "G2")
 Overlap <- pbapply(Overlaps_taxon, 1, 
                    cl = cl,
                    FUN = function(y){
-  FUN.Overlap(data = vols_ls[["Taxon"]]$hv,
-              names = y)
-})
+                     FUN.Overlap(data = vols_ls[["Taxon"]]$hv,
+                                 names = y)
+                   })
 stopCluster(cl)
 closeAllConnections()
 Overlaps_taxon$Value <- Overlap*100
@@ -502,8 +501,9 @@ OV_taxon <- ggplot(Overlaps_taxon, aes(x = G1, y = G2, label = round(Value2,2)))
   theme(text = element_text(size = 16),
         legend.title = element_text(size = 14), 
         legend.text = element_text(size = 12),
+        axis.text.x = element_text(angle = 20, hjust = 1),
         legend.position = "bottom",
-        legend.key.width = unit(dev.size()[1] / 6, "inches")
+        legend.key.width = unit(dev.size()[1] / 8, "inches")
   )
 OV_taxon
 
@@ -527,25 +527,25 @@ Overlaps <- lapply(spec_vec, FUN = function(sp){
   print(sp)
   
   IterPos <- which(lapply(
-      strsplit(names(vols_ls$Individuals$hv), split = "_"), 
-      "[[", 4) == sp)
+    strsplit(names(vols_ls$Individuals$hv), split = "_"), 
+    "[[", 4) == sp)
   
   IterCombs <-  as.data.frame(do.call(rbind, 
-                            combn(x = names(vols_ls$Individuals$vols[IterPos]), 
-                                  m = 2, simplify = FALSE)
+                                      combn(x = names(vols_ls$Individuals$vols[IterPos]), 
+                                            m = 2, simplify = FALSE)
   ))
   colnames(IterCombs) <- c("ID1", "ID2")
   
   IterOver <- pbapply(IterCombs, 
                       cl = cl,
                       MARGIN = 1, FUN = function(iter){
-    # print(iter)
-    sink("aux")
-    over <- FUN.Overlap(data = vols_ls$Individuals$hv, # [which(names(vols_ls$Individuals$hv) %in% iter)]
-                names = unlist(iter))
-    sink(NULL)
-    over
-  })
+                        # print(iter)
+                        sink("aux")
+                        over <- FUN.Overlap(data = vols_ls$Individuals$hv, # [which(names(vols_ls$Individuals$hv) %in% iter)]
+                                            names = unlist(iter))
+                        sink(NULL)
+                        over
+                      })
 })
 stopCluster(cl)
 closeAllConnections()
@@ -553,7 +553,7 @@ names(Overlaps) <- spec_vec
 
 OverID <- do.call(rbind, lapply(Overlaps, FUN = function(x){
   data.frame(mean = mean(x),
-  sd = sd(x)
+             sd = sd(x)
   )
 }))
 OverID$SP <- spec_vec
@@ -580,10 +580,11 @@ OV_ID
 overlaps_gg <- plot_grid(
   plot_grid(OV_fg + theme(legend.position = "none"), OV_taxon + theme(legend.position = "none"), labels = "AUTO"),
   get_legend(OV_taxon),
+  OV_venn,
   OV_ID, 
-  ncol = 1, rel_heights = c(1, 0.1, 0.7),
-  labels = c("", "", "C"))
+  ncol = 1, rel_heights = c(1.5, 0.1, 1, 1),
+  labels = c("", "", "C", "D"))
 overlaps_gg
-ggsave(file.path("plots", 'HV_Overlaps.png'), overlaps_gg, units = 'in', height = 16, width = 21, dpi = 600)
+ggsave(file.path("plots", 'HV_Overlaps.png'), overlaps_gg, units = 'in', height = 24/1.5, width = 21/1.5, dpi = 600)
 
 
