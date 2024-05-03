@@ -31,7 +31,8 @@ package_vec1 <- c(
   "dplyr",
   "stringr",
   "tidyverse",
-  "maditr"
+  "maditr",
+  "polyclip"
 )
 sapply(package_vec1, install.load.package)
 
@@ -405,12 +406,13 @@ Overlaps_venn <- data.frame(G1 = c("H. umbellata", "P. bonplandianum", "G. glome
                             ))
 
 Forbs_euler <- draw.pairwise.venn(
-  round(as.numeric(vols_ls$Taxon$vols$`H. umbellata`), 2), 
-  round(as.numeric(vols_ls$Taxon$vols$`L. orbiculata`), 2), 
+  round(as.numeric(vols_ls$Taxon$vols$`H. umbellata`), 4), 
+  round(as.numeric(vols_ls$Taxon$vols$`L. orbiculata`), 4),
   round(Overlaps_venn$Value[1], 4),
   c("H. umbellata", "L. orbiculata"),
   fill = pal_lm[1:2],
   alpha = 1,
+  inverted = TRUE,
   ind = FALSE,
   cex = 1.2,
   cat.cex = 1.2,
@@ -419,7 +421,8 @@ Forbs_euler <- draw.pairwise.venn(
   ext.dist = -0.15,
   ext.length = 0.85
 )
-Forbs_euler <- ggdraw(Forbs_euler)
+# Forbs_euler <- ggdraw(Forbs_euler)
+Forbs_euler
 
 Gram_euler <- draw.pairwise.venn(
   round(as.numeric(vols_ls$Taxon$vols$`P. bonplandianum`), 2), 
@@ -436,16 +439,17 @@ Gram_euler <- draw.pairwise.venn(
   ext.dist = -0.15,
   ext.length = 0.85
 )
-Gram_euler <- ggdraw(Gram_euler)
+# Gram_euler <- ggdraw(Gram_euler)
 
 Wood_euler <- draw.pairwise.venn(
-  round(as.numeric(vols_ls$Taxon$vols$`G. glomerata`), 2), 
   round(as.numeric(vols_ls$Taxon$vols$`V. floribundum`), 2), 
+  round(as.numeric(vols_ls$Taxon$vols$`G. glomerata`), 2), 
   round(Overlaps_venn$Value[3], 4),
-  c("G. glomerata", "V. floribundum"),
-  fill = pal_lm[5:6],
+  c("V. floribundum", "G. glomerata"),
+  fill = pal_lm[6:5],
   alpha = 1,
   ind = FALSE,
+  inverted = TRUE,
   cex = 1.2,
   cat.cex = 1.2,
   cat.pos = 0,
@@ -453,10 +457,38 @@ Wood_euler <- draw.pairwise.venn(
   ext.dist = -0.15,
   ext.length = 0.85
 )
-Wood_euler <- ggdraw(Wood_euler)
+# Wood_euler <- ggdraw(Wood_euler)
 
-OV_venn <- plot_grid(Forbs_euler, Gram_euler, Wood_euler, ncol = 3)
-ggsave(file.path("plots", 'HV_Over_Venn.png'), OV_venn, units = 'in', height = 4.7, width = 14, dpi = 600)
+# OV_venn <- plot_grid(Forbs_euler, Gram_euler, Wood_euler, ncol = 3)
+# ggsave(file.path("plots", 'HV_Over_Venn.png'), OV_venn, units = 'in', height = 4.7, width = 14, dpi = 600)
+png(file.path("plots", 'HV_Over_Venn.png'), units = 'in', height = 4.7, width = 14, res = 600)
+par(mfrow = c(1,3), mai = c(0, 0, 0, 0))
+for(EulerIter in 1:3){
+  vp <- list(Forbs_euler, Gram_euler, Wood_euler)[[EulerIter]]
+  Eulerpal <- pal_lm
+  
+  A <- list(list(x = as.vector(vp[[3]][[1]]), y = as.vector(vp[[3]][[2]])))
+  B <- list(list(x = as.vector(vp[[4]][[1]]), y = as.vector(vp[[4]][[2]])))
+  
+  AintB <- polyclip(A, B)
+  ix <- sapply(vp, function(x) grepl("text", x$name, fixed = TRUE))
+  labs <- do.call(rbind.data.frame, lapply(vp[ix], `[`, c("x", "y", "label")))
+  plot(c(0, 1), c(0, 1), type = "n", axes = FALSE, xlab = "", ylab = "")
+  polygon(A[[1]], col = Eulerpal[1+(EulerIter-1)*2])
+  polygon(B[[1]], col = Eulerpal[2+(EulerIter-1)*2])
+  polygon(AintB[[1]], col = "darkgrey")
+  text(x = labs$x, y = labs$y, labels = labs$label)
+}
+dev.off()
+
+imgurlBase <- file.path("plots", 'HV_Over_Venn.png')
+img <- readPNG(imgurlBase)
+g <- rasterGrob(img, interpolate=TRUE)
+
+OV_venn <- ggplot() + 
+  annotation_custom(g, xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
+  theme_void()
+
 
 #### Relative Overlap -----
 cl <- parallel::detectCores()
