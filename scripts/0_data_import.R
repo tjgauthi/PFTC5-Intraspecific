@@ -39,7 +39,7 @@ dir.create("data/raw")
 
 #Download traits data from OSF
 get_file(node = "gs8u6",
-         file = "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv",
+         file = "PFTC3-Puna-PFTC5_Peru_2018-2020_FunctionalTraits_clean.csv",
          path = "data/raw",
          remote_path = "traits")
 
@@ -48,7 +48,7 @@ get_file(node = "gs8u6",
 ### >> Traits data ----
 
 # traits data - complete
-traits_raw <- read.csv(file.path("data", "raw", "PFTC3-Puna-PFTC5_Peru_2018-2020_LeafTraits_clean.csv"),
+traits_raw <- read.csv(file.path("data", "raw", "PFTC3-Puna-PFTC5_Peru_2018-2020_FunctionalTraits_clean.csv"),
                        header = T,
                        sep = ",") |> 
   filter(site %in% c("WAY", "ACJ", "TRE") &
@@ -62,7 +62,7 @@ traits <- traits_raw |>
   #Select the intraspecific species
   filter(taxon %in% c("Gaultheria glomerata", "Rhynchospora macrochaeta", "Vaccinium floribundum", "Halenia umbellata", "Lachemilla orbiculata", "Paspalum bonplandianum")) |>
   #Removing all individuals of these species that were not sampled with the ITV method (several leaves per individual)
-  filter(!is.na(leaf_id)) |>  
+  filter(!is.na(leaf_nr)) |> 
   #Those that we can not confirm is wrong, but most likely does not belong in the ITV dataset
   filter(!id %in% c("COI1685", "BUS1756", "CMR2436", "AUB2849", "AAF7186", "BZH3536"))
 
@@ -86,7 +86,7 @@ traits_wide<-traits |>
 traits_wide <- traits_wide |> 
   mutate(plot_uid = paste(site, plot_id, sep = "_"),
          individual_uid = paste(site, taxon, plot_id, individual_nr, sep = "_"),
-         leaf_uid = paste(site, taxon, plot_id, individual_nr, leaf_id, sep = "_"))
+         leaf_uid = paste(site, taxon, plot_id, individual_nr, leaf_nr, sep = "_"))
 
 #Code for cleaning leftover mistakes in the plant height
 #This will be changed in the original cleaning code, so it will be redundant once that has been pushed and merged, and the new clean data is on OSF.
@@ -101,6 +101,42 @@ traits_wide <- traits_wide |>
     plant_height_cm = if_else(id == "CER9449", 59, plant_height_cm),
     plant_height_cm = if_else(id == "AOR3155", 63.5, plant_height_cm))
 
-# End of script ----
+rm('traits')
 
+#we only want to use leaves with complete traits
+traits_wide<-na.omit(traits_wide) #remove incomplete rows
+
+#filter out individuals that have 1-2 leaves only
+traits_wide <-subset (traits_wide, individual_uid != "TRE_Vaccinium floribundum_5_4" &
+                        individual_uid !="TRE_Vaccinium floribundum_5_1" &
+                        individual_uid !="TRE_Vaccinium floribundum_3_3" &
+                        individual_uid !="TRE_Vaccinium floribundum_1_2" &
+                        individual_uid !="TRE_Vaccinium floribundum_1_1" &
+                        individual_uid !="TRE_Lachemilla orbiculata_1_12" &
+                        individual_uid !="ACJ_Rhynchospora macrochaeta_5_3" &
+                        individual_uid !="ACJ_Rhynchospora macrochaeta_1_3" &
+                        individual_uid !="WAY_Vaccinium floribundum_5_5" &
+                        individual_uid !="WAY_Lachemilla orbiculata_1_2" &
+                        individual_uid !="TRE_Vaccinium floribundum_5_2" &
+                        individual_uid !="TRE_Paspalum bonplandianum_4_1" &
+                        individual_uid !="TRE_Lachemilla orbiculata_5_12" &
+                        individual_uid !="TRE_Lachemilla orbiculata_1_1")
+
+
+#removing outliers from the wetmass-drymass relationship
+traits_wide <-subset (traits_wide, leaf_uid != "ACJ_Gaultheria glomerata_4_2_1" &
+                        leaf_uid != "ACJ_Lachemilla orbiculata_4_3_2" &
+                        leaf_uid != "TRE_Vaccinium floribundum_4_2_1" &
+                        leaf_uid != "ACJ_Vaccinium floribundum_3_2_1" &
+                        leaf_uid != "ACJ_Paspalum bonplandianum_5_3_3" & 
+                        leaf_uid != "ACJ_Halenia umbellata_3_3_5")
+
+#removing outlier leaf thickness
+traits_wide <-subset (traits_wide, leaf_uid != "ACJ_Paspalum bonplandianum_2_3_1")
+
+traits <- traits_wide |> 
+  pivot_longer(names_to = "trait", values_to = "value", cols = 10:16)
+
+
+# End of script ----
 
