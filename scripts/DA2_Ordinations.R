@@ -197,25 +197,41 @@ ggsave(
 ### RDA analysis ---------------------------------------------------------------------
 # to see if there are significant differences in the factor
 
-RDA_out <- rda(df1[, c(7:12)] ~ scale(elevation) * taxon, center = TRUE, scale = TRUE, data = df1)
+ # Data for RDA
+ RDA_traits <- traits_wide |> 
+   select(site, elevation, functional_group, taxon, leaf_uid, plant_height_cm, dry_mass_g, leaf_area_cm2, sla_cm2_g, ldmc, leaf_thickness_mm) |> 
+   mutate(site = factor(site, levels = c("WAY", "ACJ", "TRE"))) 
+ 
+RDA_out <- rda(RDA_traits[, c(6:11)] ~ scale(elevation) * taxon, center = TRUE, scale = TRUE, data = RDA_traits)
 
 summary(RDA_out)
 print(RDA_out)
 
 # We construct the models
-RDA_1 <- rda(df1[, c(7:12)] ~ scale(elevation), center = TRUE, scale = TRUE, data = df1)
-RDA_2 <- rda(df1[, c(7:12)] ~ taxon, center = TRUE, scale = TRUE, data = df1)
-RDA_3 <- rda(df1[, c(7:12)] ~ scale(elevation) + taxon, center = TRUE, scale = TRUE, data = df1)
-RDA_4 <- rda(df1[, c(7:12)] ~ scale(elevation) * taxon, center = TRUE, scale = TRUE, data = df1)
+RDA_1 <- rda(RDA_traits[, c(6:11)] ~ scale(elevation), center = TRUE, scale = TRUE, data = RDA_traits)
+RDA_2 <- rda(RDA_traits[, c(6:11)] ~ taxon, center = TRUE, scale = TRUE, data = RDA_traits)
+RDA_3 <- rda(RDA_traits[, c(6:11)] ~ scale(elevation) + taxon, center = TRUE, scale = TRUE, data = RDA_traits)
+RDA_4 <- rda(RDA_traits[, c(6:11)] ~ scale(elevation) * taxon, center = TRUE, scale = TRUE, data = RDA_traits)
+RDA_5 <- rda(RDA_traits[, c(6:11)] ~ functional_group, center = TRUE, scale = TRUE, data = RDA_traits)
+RDA_6 <- rda(RDA_traits[, c(6:11)] ~ functional_group + scale(elevation), center = TRUE, scale = TRUE, data = RDA_traits)
+RDA_7 <- rda(RDA_traits[, c(6:11)] ~ functional_group * scale(elevation), center = TRUE, scale = TRUE, data = RDA_traits)
 
 # then we compare the models
 anova(RDA_1, RDA_3)
 anova(RDA_1, RDA_4)
 anova(RDA_3, RDA_4)
 
+summary(RDA_1)
+summary(RDA_2)
+summary(RDA_3)
+summary(RDA_4)
+summary(RDA_5)
+summary(RDA_6)
+summary(RDA_7)
+
 anova(RDA_2, RDA_3)
 anova(RDA_2, RDA_4)
 anova(RDA_3, RDA_4)
 
-# when doing ANOVA the interaction between elevation and taxa
-# there is an interaction between elevation and factor
+anova(RDA_5, RDA_6)
+anova(RDA_5, RDA_7)
