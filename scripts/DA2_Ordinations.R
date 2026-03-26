@@ -20,7 +20,8 @@ source("scripts/0_data_import.R")
 
 # Clean data
 ord_traits <- traits_wide |> 
-  select(site, taxon, leaf_uid, plant_height_cm, dry_mass_g, leaf_area_cm2, sla_cm2_g, ldmc, leaf_thickness_mm)
+  select(site, taxon, leaf_uid, plant_height_cm, dry_mass_g, leaf_area_cm2, sla_cm2_g, ldmc, leaf_thickness_mm) |> 
+  mutate(site = factor(site, levels = c("WAY", "ACJ", "TRE")))
 
 
 ### PCA analysis -------------------------------------------------------------------
@@ -44,17 +45,13 @@ ord_traits |>
 
 #NO NAs, so moving forward
 
-#df1$site <- factor(df1$site, levels = c("WAY", "ACJ", "TRE"))
 
-
-# create a new DF for pca analisys
+# Do the ordination
 pca_out <- prcomp(ord_traits[, c(4:9)], center = TRUE, scale = TRUE)
 
-
-# pca_out <- prcomp(df1, center = TRUE, scale. = TRUE)
 summary(pca_out)
 str(pca_out)
-pca_out$rotation # look at laodings
+pca_out$rotation # look at loadings
 
 
 # Plot PCA with ggplot2
@@ -62,11 +59,25 @@ scores <- as.data.frame(pca_out$x) ## getting the scores
 scores.1 <- cbind(scores, ord_traits)
 pca.loadings <- data.frame(Variables = rownames(pca_out$rotation), pca_out$rotation) # drawing the arrows
 
+#Correct order for the plot
+scores.1 <- scores.1 |> 
+  mutate(
+    site = factor(site, levels = c("WAY", "ACJ", "TRE")),
+    taxon = factor(taxon, levels = c(
+      "Halenia umbellata",
+      "Lachemilla orbiculata",
+      "Paspalum bonplandianum",
+      "Rhynchospora macrochaeta",
+      "Gaultheria glomerata",
+      "Vaccinium floribundum"
+    ))
+  )
+
 
 # Combine SITES and TAXON in the same graph
 c <-
   ggplot(scores.1, aes(x = PC1, y = PC2, color=taxon, shape=site)) +  
-geom_point(stat="identity", position=position_dodge(), size=3, alpha = 0.8)+ 
+geom_point(stat="identity", size=3, alpha = 0.8)+ 
   scale_fill_hue(l=40) + 
   coord_fixed(ratio = 1, xlim = range(scores$PC1), ylim = range(scores$PC2))+
   geom_vline(xintercept = 0)+
@@ -89,8 +100,7 @@ geom_point(stat="identity", position=position_dodge(), size=3, alpha = 0.8)+
       "#E19825",
       "#F7C480",
       "#3E8853",
-      "#9FCD99",
-    )
+      "#9FCD99")
   ) +
   geom_segment(
     data = pca.loadings,
@@ -106,10 +116,10 @@ geom_point(stat="identity", position=position_dodge(), size=3, alpha = 0.8)+
   ) +
   annotate(
     "text",
-    x = (pca.loadings$PC1 * 4),
-    y = (pca.loadings$PC2 * 3),
+    x = (pca.loadings$PC1 * 3.8),
+    y = (pca.loadings$PC2 * 2.8),
     label = c("H", "DM", "LA", "SLA", "LDMC", "LT"),
-    size = 3.5
+    size = 4
   ) 
 
 c.final <-
@@ -143,82 +153,45 @@ ggsave(
   height = 21,
   units = "cm",
   dpi = 600,
-  c_final
+  c.final
 )
 
 
-### (NOT USED) Plot taking TAXON into account
-# p <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color = taxon)) +
-#   geom_point(size = 2) +
-#   scale_fill_hue(l = 40) +
-#   coord_fixed(
-#     ratio = 1,
-#     xlim = range(scores$PC1),
-#     ylim = range(scores$PC2)
-#   ) +
-#   geom_vline(xintercept = 0) +
-#   geom_hline(yintercept = 0) +
-#   theme_classic() +
-#   xlab("PC 1 (49.4%)") +
-#   ylab("PC 2 (31.4%)") +
-#   geom_segment(
-#     data = pca.loadings,
-#     aes(
-#       x = 0,
-#       y = 0,
-#       xend = (PC1 * 3.5),
-#       yend = (PC2 * 2)
-#     ),
-#     arrow = arrow(length = unit(1 / 2, "picas")),
-#     color = "black"
-#   ) +
-#   geom_point(size = 3) +
-#   annotate(
-#     "text",
-#     x = (pca.loadings$PC1 * 3.5),
-#     y = (pca.loadings$PC2 * 2),
-#     label = c("Height", "Dry mass", "leaf area", "SLA", "LDMC", "Leaf thickness")
-#   ) +
-#   theme(legend.position = "right") +
-#   scale_color_brewer(palette = "Paired")
-# p + guides(color = guide_legend(title = "Plant species"))
-
-
-### (NOT USED) Plot taking SITES into account
-# s <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color = site)) +
-#   geom_point(size = 2) +
-#   scale_fill_hue(l = 40) +
-#   coord_fixed(
-#     ratio = 1,
-#     xlim = range(scores$PC1),
-#     ylim = range(scores$PC2)
-#   ) +
-#   geom_vline(xintercept = 0) +
-#   geom_hline(yintercept = 0) +
-#   theme_classic() +
-#   xlab("PC 1 (49.4%)") +
-#   ylab("PC 2 (31.4%)") +
-#   geom_segment(
-#     data = pca.loadings,
-#     aes(
-#       x = 0,
-#       y = 0,
-#       xend = (PC1 * 3.5),
-#       yend = (PC2 * 2)
-#     ),
-#     arrow = arrow(length = unit(1 / 2, "picas")),
-#     color = "black"
-#   ) +
-#   geom_point(size = 3) +
-#   annotate(
-#     "text",
-#     x = (pca.loadings$PC1 * 3.5),
-#     y = (pca.loadings$PC2 * 2),
-#     label = c("Height", "Dry mass", "leaf area", "SLA", "LDMC", "Leaf thickness")
-#   ) +
-#   theme(legend.position = "right") +
-#   scale_color_brewer(palette = "Paired")
-# s + guides(color = guide_legend(title = "Sites"))
+### Plot colored by sites - could be used in the appendix?
+ s <- ggplot(data = scores.1, aes(x = PC1, y = PC2, color = site)) +
+   geom_point(size = 2) +
+   scale_fill_hue(l = 40) +
+   coord_fixed(
+     ratio = 1,
+     xlim = range(scores$PC1),
+     ylim = range(scores$PC2)
+   ) +
+   geom_vline(xintercept = 0) +
+   geom_hline(yintercept = 0) +
+   theme_classic() +
+   xlab("PC 1 (49.4%)") +
+   ylab("PC 2 (31.4%)") +
+   geom_segment(
+     data = pca.loadings,
+     aes(
+       x = 0,
+       y = 0,
+       xend = (PC1 * 3.5),
+       yend = (PC2 * 2)
+     ),
+     arrow = arrow(length = unit(1 / 2, "picas")),
+     color = "black"
+   ) +
+   geom_point(size = 3) +
+   annotate(
+     "text",
+     x = (pca.loadings$PC1 * 3.5),
+     y = (pca.loadings$PC2 * 2),
+     label = c("Height", "Dry mass", "leaf area", "SLA", "LDMC", "Leaf thickness")
+   ) +
+   theme(legend.position = "right") +
+   scale_color_brewer(palette = "Paired")
+ s + guides(color = guide_legend(title = "Sites"))
 
 
 ### RDA analysis ---------------------------------------------------------------------
