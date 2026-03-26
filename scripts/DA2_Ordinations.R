@@ -13,48 +13,12 @@ library(vegan)
 # library(ggbiplot)
 
 
-# Data from data_import code
-#source
+#### Source and clean data ####
 
+# Source
+source("scripts/0_data_import.R")
 
-# 
-# # select 2020, sites (WAY, ACJ and TRE), treatment and traits we are interest in
-# data <- data %>%
-#   filter(
-#     site %in% c("WAY", "ACJ", "TRE") &
-#       year == 2020 &
-#       treatment == "C" &
-#       trait %in% c(
-#         "plant_height_cm",
-#         "leaf_area_cm2",
-#         "sla_cm2_g",
-#         "ldmc",
-#         "dry_mass_g",
-#         "leaf_thickness_mm"
-#       ) &
-#       taxon %in% c(
-#         "Halenia umbellata",
-#         "Lachemilla orbiculata",
-#         "Paspalum bonplandianum",
-#         "Rhynchospora macrochaeta",
-#         "Vaccinium floribundum",
-#         "Gaultheria glomerata"
-#       )
-#   )
-# 
-# 
-# data$site <- factor(data$site)
-# data$taxon <- factor(data$taxon)
-# data$functional_group <- factor(data$functional_group)
-# # data$functional_group <- as.numeric(data$functional_group)
-# # data <- data[!is.na(data$individual_nr),]
-# 
-# unique(data$site)
-# # unique(data$individual_nr)
-# unique(data$taxon)
-# unique(data$functional_group)
-# unique(data$trait)
-
+# Clean data
 ord_traits <- traits_wide |> 
   select(site, taxon, leaf_uid, plant_height_cm, dry_mass_g, leaf_area_cm2, sla_cm2_g, ldmc, leaf_thickness_mm)
 
@@ -116,16 +80,16 @@ geom_point(stat="identity", position=position_dodge(), size=3, alpha = 0.8)+
       "Lachemilla orbiculata",
       "Paspalum bonplandianum",
       "Rhynchospora macrochaeta",
-      "Vaccinium floribundum",
-      "Gaultheria glomerata"
+      "Gaultheria glomerata",
+      "Vaccinium floribundum"
     ),
     values = c(
       "#016392",
       "#A0CBE8",
       "#E19825",
       "#F7C480",
+      "#3E8853",
       "#9FCD99",
-      "#3E8853"
     )
   ) +
   geom_segment(
