@@ -360,6 +360,8 @@ elev_gg
 ggsave(file.path("plots", "Elevation.png"), elev_gg, units = "in", height = 4.7, width = 7.4, dpi = 600)
 ggsave(file.path("plots", "Elevation.pdf"), elev_gg, units = "in", height = 4.7, width = 7.4, dpi = 600)
 
+head(plot_df[order(plot_df$values, decreasing = TRUE), ])
+
 #### Linear Mixed Effect Models ----
 print("Hypervolume linear mixed effect model")
 ### taxonomic grouping of species
