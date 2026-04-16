@@ -424,7 +424,7 @@ OV_fg <- ggplot(Overlaps_fg, aes(x = G1, y = G2, label = round(Value, 2))) +
   geom_tile(aes(fill = Value)) +
   scale_fill_viridis_c(direction = -1, option = "E", begin = 0.2) + # limits = c(0, 10)
   geom_label() +
-  labs(x = "", y = "", fill = "Relative Overlap [%]", title = "Functional Groups") +
+  labs(x = "", y = "", fill = "Jaccard Distances", title = "Functional Groups (Jaccard Distances)") +
   my_theme +
   theme(
     text = element_text(size = 16),
@@ -587,7 +587,7 @@ OV_taxon <- ggplot(Overlaps_taxon, aes(x = G1, y = G2, label = round(Value2, 2))
   geom_tile(aes(fill = Value2)) +
   scale_fill_viridis_c(direction = -1, option = "E", begin = 0.2, na.value = "white") + # , limits = c(0, 10)
   geom_label() +
-  labs(x = "", y = "", fill = "Relative Overlap [%]", title = "Species") +
+  labs(x = "", y = "", fill = "Jaccard Distances", title = "Species (Jaccard Distances)") +
   my_theme +
   theme(
     text = element_text(size = 16),
@@ -677,7 +677,7 @@ OV_ID <- ggplot(OverID, aes(y = Value * 100, x = SP, fill = factor(SP))) +
   stat_compare_means(comparisons = taxon.comps, method = "t.test", label = "p.signif") +
   scale_fill_manual(values = as.character(pal_lm)) +
   guides(fill = "none") +
-  labs(x = "Species Identity", y = "Relatrive Overlap [%]", title = "Individual Hypervolumes") +
+  labs(x = "Species Identity", y = "Relatrive Overlap [%]", title = "Individual Hypervolumes (Jaccard Distances)") +
   theme_bw()
 print(OV_ID)
 
@@ -693,3 +693,196 @@ overlaps_gg <- plot_grid(
 print(overlaps_gg)
 ggsave(file.path("plots", "HV_Overlaps.png"), overlaps_gg, units = "in", height = 24 / 1.5, width = 21 / 1.5, dpi = 600)
 ggsave(file.path("plots", "HV_Overlaps.pdf"), overlaps_gg, units = "in", height = 24 / 1.5, width = 21 / 1.5, dpi = 600)
+
+## Hypervolumes by Elevation ----------------------------------------------
+message("#### Hypervolumes by elevation")
+elevs_vec <- unique(traits_df$elevation)
+
+### calculate hypervolumes for each elevation separately for taxonomic and functional groupings
+elev_hvs <- lapply(elevs_vec, FUN = function(elev) {
+  message(elev)
+  taxon_hv <- FUN.Hypervolumes(
+    data = traits_df %>% filter(elevation == elev),
+    Grouping = "taxon",
+    TraitCols = c(6, 7:12)
+  )
+  fg_hv <- FUN.Hypervolumes(
+    data = traits_df %>% filter(elevation == elev),
+    Grouping = "functional_group",
+    TraitCols = c(6, 7:12)
+  )
+  list(
+    taxon = taxon_hv,
+    fg = fg_hv
+  )
+})
+names(elev_hvs) <- as.character(elevs_vec)
+
+### calculate overlap between each subsequent elevation for taxonomic and functional groupings
+elevs_vec <- sort(elevs_vec)
+comps <- data.frame(
+  first = c(elevs_vec[1], elevs_vec[2], elevs_vec[1]),
+  second = c(elevs_vec[2], elevs_vec[3], elevs_vec[3])
+)
+
+OverElev_ls <- lapply(1:nrow(comps), FUN = function(i) {
+  # i <- 1
+  print(comps[i, ])
+
+  ### functional group overlap
+  fg_ov <- pblapply(unique(traits_df$functional_group), FUN = function(fg) {
+    # fg <- unique(traits_df$functional_group)[3]
+
+    comp_ls <- list(
+      elev_hvs[[as.character(comps$first[i])]]$fg[[which(names(elev_hvs[[as.character(comps$first[i])]]$fg) == fg)]],
+      elev_hvs[[as.character(comps$second[i])]]$fg[[which(names(elev_hvs[[as.character(comps$second[i])]]$fg) == fg)]]
+    )
+    names(comp_ls) <- c(as.character(comps$first[i]), as.character(comps$second[i]))
+
+    ov_hv <- FUN.Overlap(
+      data = comp_ls,
+      names = names(comp_ls),
+      what = "absolute"
+    )
+
+    data.frame(
+      Elevation1 = as.character(comps$first[i]),
+      Elevation2 = as.character(comps$second[i]),
+      Size1 = get_volume(comp_ls[[1]]),
+      Size2 = get_volume(comp_ls[[2]]),
+      Functional_Group = fg,
+      Overlap = ov_hv
+    )
+  })
+  fg_ov_df <- do.call(rbind, fg_ov)
+
+  ### taxonomic group overlap
+  tx_ov <- pblapply(unique(traits_df$taxon), FUN = function(tx) {
+    # tx <- unique(traits_df$taxon)[1]
+
+    comp_ls <- list(
+      elev_hvs[[as.character(comps$first[i])]]$taxon[[which(names(elev_hvs[[as.character(comps$first[i])]]$taxon) == tx)]],
+      elev_hvs[[as.character(comps$second[i])]]$taxon[[which(names(elev_hvs[[as.character(comps$second[i])]]$taxon) == tx)]]
+    )
+    names(comp_ls) <- c(as.character(comps$first[i]), as.character(comps$second[i]))
+
+    ov_hv <- FUN.Overlap(
+      data = comp_ls,
+      names = names(comp_ls),
+      what = "absolute"
+    )
+
+    data.frame(
+      Elevation1 = as.character(comps$first[i]),
+      Elevation2 = as.character(comps$second[i]),
+      Size1 = get_volume(comp_ls[[1]]),
+      Size2 = get_volume(comp_ls[[2]]),
+      Taxon = tx,
+      Overlap = ov_hv
+    )
+  })
+  tx_ov_df <- do.call(rbind, tx_ov)
+
+  ### reporting back up
+  list(
+    taxon = tx_ov_df,
+    fg = fg_ov_df
+  )
+})
+
+fg_df <- do.call(rbind, lapply(OverElev_ls, function(x) x$fg))
+fg_df$relativeOV <- fg_df$Overlap / (fg_df$Size1 + fg_df$Size2) * 100
+fg_df$ElevDiff <- as.numeric(as.character(fg_df$Elevation2)) - as.numeric(as.character(fg_df$Elevation1))
+
+fg_plot <- plot_grid(
+  ggplot(fg_df, aes(x = Elevation1, y = Elevation2, fill = relativeOV)) +
+    geom_tile() +
+    scale_fill_viridis_c(direction = -1, option = "E", begin = 0.2, limits = c(0, NA)) +
+    facet_wrap(~Functional_Group) +
+    geom_label(aes(label = paste(round(relativeOV, 2), "%")), fill = "white") +
+    labs(x = "Elevation of Site 1 [m]", y = "Elevation of Site 2 [m]", fill = "Relative Overlap [%]") +
+    my_theme +
+    theme(
+      text = element_text(size = 16),
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 12),
+      legend.position = "top",
+      legend.key.width = unit(dev.size()[1] / 18, "inches")
+    ),
+  ggplot(fg_df, aes(x = ElevDiff, y = relativeOV, fill = Functional_Group, col = Functional_Group)) +
+    geom_point() +
+    geom_line(linewidth = 2) +
+    labs(x = "Elevation Difference [m]", y = "Relative Overlap [%]", fill = "Functional Group", color = "Functional Group") +
+    scale_fill_manual(values = FG_pal) +
+    scale_color_manual(values = FG_pal) +
+    my_theme +
+    theme(
+      text = element_text(size = 16),
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 12),
+      legend.position = "bottom",
+      legend.key.width = unit(dev.size()[1] / 15, "inches")
+    ),
+  ncol = 1
+)
+ggsave(file.path("plots", "HV_Over_Elevation_FG.png"), fg_plot, units = "in", height = 12, width = 12, dpi = 600)
+ggsave(file.path("plots", "HV_Over_Elevation_FG.pdf"), fg_plot, units = "in", height = 12, width = 12, dpi = 600)
+
+
+
+tx_df <- do.call(rbind, lapply(OverElev_ls, function(x) x$taxon))
+tx_df$relativeOV <- tx_df$Overlap / (tx_df$Size1 + tx_df$Size2) * 100
+tx_df$ElevDiff <- as.numeric(as.character(tx_df$Elevation2)) - as.numeric(as.character(tx_df$Elevation1))
+tx_df$Taxon <- paste0(
+  substr(unlist(lapply(strsplit(as.character(tx_df$Taxon), split = " "), "[[", 1)), 1, 1),
+  ". ",
+  unlist(lapply(strsplit(as.character(tx_df$Taxon), split = " "), "[[", 2))
+)
+
+tx_levels <- plot_df %>%
+  dplyr::distinct(taxon, functional_group) %>%
+  dplyr::mutate(
+    taxon = as.character(taxon),
+    functional_group = as.character(functional_group)
+  ) %>%
+  dplyr::arrange(
+    factor(functional_group, levels = c("Forb", "Graminoid", "Woody")),
+    taxon
+  ) %>%
+  dplyr::pull(taxon)
+tx_df$Taxon <- factor(as.character(tx_df$Taxon), levels = tx_levels)
+
+tx_plot <- plot_grid(
+  ggplot(tx_df, aes(x = Elevation1, y = Elevation2, fill = relativeOV)) +
+    geom_tile() +
+    scale_fill_viridis_c(direction = -1, option = "E", begin = 0.2, limits = c(0, NA)) +
+    facet_wrap(~Taxon) +
+    geom_label(aes(label = paste(round(relativeOV, 2), "%")), fill = "white") +
+    labs(x = "Elevation of Site 1 [m]", y = "Elevation of Site 2 [m]", fill = "Relative Overlap [%]") +
+    my_theme +
+    theme(
+      text = element_text(size = 16),
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 12),
+      legend.position = "top",
+      legend.key.width = unit(dev.size()[1] / 18, "inches")
+    ),
+  ggplot(tx_df, aes(x = ElevDiff, y = relativeOV, fill = Taxon, col = Taxon)) +
+    geom_point() +
+    geom_line(linewidth = 2) +
+    labs(x = "Elevation Difference [m]", y = "Relative Overlap [%]", fill = "Species", color = "Species") +
+    scale_fill_manual(values = pal_lm) +
+    scale_color_manual(values = pal_lm) +
+    my_theme +
+    theme(
+      text = element_text(size = 16),
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 12),
+      legend.position = "bottom",
+      legend.key.width = unit(dev.size()[1] / 15, "inches")
+    ),
+  ncol = 1
+)
+
+ggsave(file.path("plots", "HV_Over_Elevation_TX.png"), tx_plot, units = "in", height = 12, width = 12, dpi = 600)
+ggsave(file.path("plots", "HV_Over_Elevation_TX.pdf"), tx_plot, units = "in", height = 12, width = 12, dpi = 600)
