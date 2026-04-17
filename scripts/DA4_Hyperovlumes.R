@@ -414,7 +414,8 @@ colnames(Overlaps_fg) <- c("G1", "G2")
 Overlap <- apply(Overlaps_fg, 1, FUN = function(y) {
   FUN.Overlap(
     data = vols_ls[["Functional"]]$hv,
-    names = y
+    names = y,
+    what = "absolute"
   )
 })
 Overlaps_fg$Value <- Overlap * 100
@@ -424,7 +425,7 @@ OV_fg <- ggplot(Overlaps_fg, aes(x = G1, y = G2, label = round(Value, 2))) +
   geom_tile(aes(fill = Value)) +
   scale_fill_viridis_c(direction = -1, option = "E", begin = 0.2) + # limits = c(0, 10)
   geom_label() +
-  labs(x = "", y = "", fill = "Jaccard Distances", title = "Functional Groups (Jaccard Distances)") +
+  labs(x = "", y = "", fill = "Relative Overlap [%]", title = "Functional Groups (Jaccard Distance* 100)") +
   my_theme +
   theme(
     text = element_text(size = 16),
@@ -587,7 +588,7 @@ OV_taxon <- ggplot(Overlaps_taxon, aes(x = G1, y = G2, label = round(Value2, 2))
   geom_tile(aes(fill = Value2)) +
   scale_fill_viridis_c(direction = -1, option = "E", begin = 0.2, na.value = "white") + # , limits = c(0, 10)
   geom_label() +
-  labs(x = "", y = "", fill = "Jaccard Distances", title = "Species (Jaccard Distances)") +
+  labs(x = "", y = "", fill = "Relative Overlap [%]", title = "Species (Jaccard Distances * 100)") +
   my_theme +
   theme(
     text = element_text(size = 16),
@@ -677,7 +678,7 @@ OV_ID <- ggplot(OverID, aes(y = Value * 100, x = SP, fill = factor(SP))) +
   stat_compare_means(comparisons = taxon.comps, method = "t.test", label = "p.signif") +
   scale_fill_manual(values = as.character(pal_lm)) +
   guides(fill = "none") +
-  labs(x = "Species Identity", y = "Relatrive Overlap [%]", title = "Individual Hypervolumes (Jaccard Distances)") +
+  labs(x = "Species Identity", y = "Relative Overlap [%]", title = "Individual Hypervolumes (Jaccard Distances * 100)") +
   theme_bw()
 print(OV_ID)
 
@@ -791,7 +792,7 @@ OverElev_ls <- lapply(1:nrow(comps), FUN = function(i) {
 })
 
 fg_df <- do.call(rbind, lapply(OverElev_ls, function(x) x$fg))
-fg_df$relativeOV <- fg_df$Overlap / (fg_df$Size1 + fg_df$Size2) * 100
+fg_df$relativeOV <- fg_df$Overlap / (fg_df$Size1 + fg_df$Size2 - fg_df$Overlap) * 100
 fg_df$ElevDiff <- as.numeric(as.character(fg_df$Elevation2)) - as.numeric(as.character(fg_df$Elevation1))
 
 fg_plot <- plot_grid(
@@ -831,7 +832,7 @@ ggsave(file.path("plots", "HV_Over_Elevation_FG.pdf"), fg_plot, units = "in", he
 
 
 tx_df <- do.call(rbind, lapply(OverElev_ls, function(x) x$taxon))
-tx_df$relativeOV <- tx_df$Overlap / (tx_df$Size1 + tx_df$Size2) * 100
+tx_df$relativeOV <- tx_df$Overlap / (tx_df$Size1 + tx_df$Size2 - tx_df$Overlap) * 100
 tx_df$ElevDiff <- as.numeric(as.character(tx_df$Elevation2)) - as.numeric(as.character(tx_df$Elevation1))
 tx_df$Taxon <- paste0(
   substr(unlist(lapply(strsplit(as.character(tx_df$Taxon), split = " "), "[[", 1)), 1, 1),
