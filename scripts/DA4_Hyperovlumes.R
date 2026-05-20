@@ -414,8 +414,9 @@ colnames(Overlaps_fg) <- c("G1", "G2")
 Overlap <- apply(Overlaps_fg, 1, FUN = function(y) {
   FUN.Overlap(
     data = vols_ls[["Functional"]]$hv,
-    names = y,
-    what = "absolute"
+    names = y
+    # ,
+    # what = "absolute"
   )
 })
 Overlaps_fg$Value <- Overlap * 100
@@ -423,9 +424,9 @@ Overlaps_fg$Value <- Overlap * 100
 OV_fg <- ggplot(Overlaps_fg, aes(x = G1, y = G2, label = round(Value, 2))) +
   geom_label(fill = "white") +
   geom_tile(aes(fill = Value)) +
-  scale_fill_viridis_c(direction = -1, option = "E", begin = 0.2) + # limits = c(0, 10)
+  scale_fill_viridis_c(direction = -1, option = "E", begin = 0.2, limits = c(0, 7)) +
   geom_label() +
-  labs(x = "", y = "", fill = "Relative Overlap [%]", title = "Functional Groups (Jaccard Distance* 100)") +
+  labs(x = "", y = "", fill = "Relative Overlap", title = "Functional Groups (Jaccard Distance * 100)") +
   my_theme +
   theme(
     text = element_text(size = 16),
@@ -492,16 +493,17 @@ Gram_euler <- draw.pairwise.venn(
   cat.pos = 180,
   cat.dist = 0.04,
   ext.dist = -0.15,
-  ext.length = 0.85
+  ext.length = 0.85,
+  rotation.degree = 180
 )
 # Gram_euler <- ggdraw(Gram_euler)
 
 Wood_euler <- draw.pairwise.venn(
-  round(as.numeric(vols_ls$Taxon$vols$`V. floribundum`), 2),
   round(as.numeric(vols_ls$Taxon$vols$`G. glomerata`), 2),
+  round(as.numeric(vols_ls$Taxon$vols$`V. floribundum`), 2),
   round(Overlaps_venn$Value[3], 4),
-  c("V. floribundum", "G. glomerata"),
-  fill = pal_lm[6:5],
+  rev(c("V. floribundum", "G. glomerata")),
+  fill = pal_lm[5:6],
   alpha = 1,
   ind = FALSE,
   inverted = TRUE,
@@ -510,7 +512,8 @@ Wood_euler <- draw.pairwise.venn(
   cat.pos = 0,
   cat.dist = 0.04,
   ext.dist = -0.15,
-  ext.length = 0.85
+  ext.length = 0.85,
+  rotation.degree = 180
 )
 # Wood_euler <- ggdraw(Wood_euler)
 
@@ -520,7 +523,7 @@ png(file.path("plots", "HV_Over_Venn.png"), units = "in", height = 4.7, width = 
 par(mfrow = c(1, 3), mai = c(0, 0, 0, 0))
 for (EulerIter in 1:3) {
   vp <- list(Forbs_euler, Gram_euler, Wood_euler)[[EulerIter]]
-  Eulerpal <- pal_lm
+  Eulerpal <- pal_lm[c(1, 2, 4, 3, 6, 5)]
 
   A <- list(list(x = as.vector(vp[[3]][[1]]), y = as.vector(vp[[3]][[2]])))
   B <- list(list(x = as.vector(vp[[4]][[1]]), y = as.vector(vp[[4]][[2]])))
@@ -573,7 +576,6 @@ Overlap <- pbapply(Overlaps_taxon, 1,
 stopCluster(cl)
 closeAllConnections()
 Overlaps_taxon$Value <- Overlap * 100
-
 casted_OV <- dcast(Overlaps_taxon, G1 ~ G2)
 G1 <- casted_OV[, 1]
 casted_OV <- casted_OV[, -1]
@@ -586,7 +588,7 @@ Overlaps_taxon <- base::merge(Overlaps_taxon, casted_OV)
 OV_taxon <- ggplot(Overlaps_taxon, aes(x = G1, y = G2, label = round(Value2, 2))) +
   geom_label(fill = "white") +
   geom_tile(aes(fill = Value2)) +
-  scale_fill_viridis_c(direction = -1, option = "E", begin = 0.2, na.value = "white") + # , limits = c(0, 10)
+  scale_fill_viridis_c(direction = -1, option = "E", begin = 0.2, na.value = "white", limits = c(0, 7)) +
   geom_label() +
   labs(x = "", y = "", fill = "Relative Overlap [%]", title = "Species (Jaccard Distances * 100)") +
   my_theme +
@@ -673,12 +675,12 @@ taxon.comps <- list(
   c("P. bonplandianum", "R. macrochaeta")
 )
 
-OV_ID <- ggplot(OverID, aes(y = Value * 100, x = SP, fill = factor(SP))) +
+OV_ID <- ggplot(OverID, aes(y = Value, x = SP, fill = factor(SP))) +
   geom_boxplot() +
   stat_compare_means(comparisons = taxon.comps, method = "t.test", label = "p.signif") +
   scale_fill_manual(values = as.character(pal_lm)) +
   guides(fill = "none") +
-  labs(x = "Species Identity", y = "Relative Overlap [%]", title = "Individual Hypervolumes (Jaccard Distances * 100)") +
+  labs(x = "Species Identity", y = "Relative Overlap", title = "Individual Hypervolumes") +
   theme_bw()
 print(OV_ID)
 
@@ -794,6 +796,7 @@ OverElev_ls <- lapply(1:nrow(comps), FUN = function(i) {
 fg_df <- do.call(rbind, lapply(OverElev_ls, function(x) x$fg))
 fg_df$relativeOV <- fg_df$Overlap / (fg_df$Size1 + fg_df$Size2 - fg_df$Overlap) * 100
 fg_df$ElevDiff <- as.numeric(as.character(fg_df$Elevation2)) - as.numeric(as.character(fg_df$Elevation1))
+write.csv(fg_df, file.path("data", "FG_Elevation_Overlap.csv"), row.names = FALSE)
 
 fg_plot <- plot_grid(
   ggplot(fg_df, aes(x = Elevation1, y = Elevation2, fill = relativeOV)) +
@@ -887,3 +890,8 @@ tx_plot <- plot_grid(
 
 ggsave(file.path("plots", "HV_Over_Elevation_TX.png"), tx_plot, units = "in", height = 12, width = 12, dpi = 600)
 ggsave(file.path("plots", "HV_Over_Elevation_TX.pdf"), tx_plot, units = "in", height = 12, width = 12, dpi = 600)
+
+
+
+# TODo:
+#  - along elevation, write out size of HV per species and overlap across adjacent elevations per species HVs
