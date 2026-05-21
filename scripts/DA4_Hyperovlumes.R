@@ -832,8 +832,6 @@ fg_plot <- plot_grid(
 ggsave(file.path("plots", "HV_Over_Elevation_FG.png"), fg_plot, units = "in", height = 12, width = 12, dpi = 600)
 ggsave(file.path("plots", "HV_Over_Elevation_FG.pdf"), fg_plot, units = "in", height = 12, width = 12, dpi = 600)
 
-
-
 tx_df <- do.call(rbind, lapply(OverElev_ls, function(x) x$taxon))
 tx_df$relativeOV <- tx_df$Overlap / (tx_df$Size1 + tx_df$Size2 - tx_df$Overlap) * 100
 tx_df$ElevDiff <- as.numeric(as.character(tx_df$Elevation2)) - as.numeric(as.character(tx_df$Elevation1))
@@ -855,6 +853,8 @@ tx_levels <- plot_df %>%
   ) %>%
   dplyr::pull(taxon)
 tx_df$Taxon <- factor(as.character(tx_df$Taxon), levels = tx_levels)
+
+write.csv(tx_df, file.path("data", "TX_Elevation_Overlap.csv"), row.names = FALSE)
 
 tx_plot <- plot_grid(
   ggplot(tx_df, aes(x = Elevation1, y = Elevation2, fill = relativeOV)) +
@@ -890,8 +890,3 @@ tx_plot <- plot_grid(
 
 ggsave(file.path("plots", "HV_Over_Elevation_TX.png"), tx_plot, units = "in", height = 12, width = 12, dpi = 600)
 ggsave(file.path("plots", "HV_Over_Elevation_TX.pdf"), tx_plot, units = "in", height = 12, width = 12, dpi = 600)
-
-
-
-# TODo:
-#  - along elevation, write out size of HV per species and overlap across adjacent elevations per species HVs
